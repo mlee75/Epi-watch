@@ -1,0 +1,105 @@
+// Learn more about Prisma schema: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Use "postgresql" for production. Change DATABASE_URL in .env accordingly.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Outbreak {
+  id          String   @id @default(cuid())
+
+  // Core disease info
+  disease     String
+  pathogen    String?  // e.g. "Vibrio cholerae", "SARS-CoV-2"
+  country     String
+  region      String   // WHO region: AFRO, AMRO, EMRO, EURO, SEARO, WPRO
+  subregion   String?  // City, state, province
+
+  // Geolocation
+  lat         Float?
+  lng         Float?
+
+  // Epidemiology
+  cases       Int      @default(0)
+  deaths      Int      @default(0)
+  recovered   Int      @default(0)
+
+  // Classification
+  severity    String   @default("LOW") // CRITICAL | HIGH | MEDIUM | LOW
+
+  // Content
+  summary     String?
+  trend       String?  // increasing | decreasing | stable
+
+  // Verification & language
+  verified    Boolean  @default(true)   // false = unconfirmed report
+  language    String   @default("en")   // ISO 639-1 language code of source
+  titleOrig   String?  // original non-English headline (before translation)
+
+  // Source
+  sourceUrl   String
+  sourceName  String   // WHO | CDC | ECDC | ProMED | NewsAPI | GDELT
+
+  // State
+  isActive    Boolean  @default(true)
+
+  // Deduplication key (disease + country + reportDate)
+  dedupeKey   String   @unique
+
+  // Timestamps
+  reportDate  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sources     OutbreakSource[]
+
+  @@index([severity])
+  @@index([region])
+  @@index([country])
+  @@index([reportDate])
+  @@index([isActive])
+}
+
+model OutbreakSource {
+  id               String    @id @default(cuid())
+  outbreakId       String
+  outbreak         Outbreak  @relation(fields: [outbreakId], references: [id], onDelete: Cascade)
+
+  // Source identification
+  sourceName       String    // e.g. "Reuters", "WHO", "Le Monde"
+  sourceType       String    @default("news") // official | major-news | local-news | academic | news
+  sourceLanguage   String    @default("en")
+  sourceCountry    String?
+
+  // Article details
+  articleTitle     String
+  articleUrl       String    @unique
+  articleExcerpt   String?
+
+  // Publication info
+  publishedAt      DateTime?
+  scrapedAt        DateTime  @default(now())
+
+  // Reliability
+  reliabilityScore Int       @default(3) // 1-5
+
+  // Verification
+  isVerified       Boolean   @default(false)
+  verifiedBy       String?
+
+  // Translation
+  originalText     String?
+  translatedText   String?
+
+  // Metadata
+  author           String?
+
+  @@index([outbreakId])
+  @@index([publishedAt(sort: Desc)])
+}
