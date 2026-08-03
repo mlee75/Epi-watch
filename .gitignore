@@ -29,3 +29,8 @@ prisma/*.db-journal
 .claude/
 .vercel
 .env*
+
+# local dev helper
+dev-server.sh
+.agents/
+skills-lock.json
