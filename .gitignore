@@ -34,3 +34,7 @@ prisma/*.db-journal
 dev-server.sh
 .agents/
 skills-lock.json
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
