@@ -27,3 +27,5 @@ prisma/*.db-journal
 
 # claude
 .claude/
+.vercel
+.env*
