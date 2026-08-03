@@ -1,0 +1,23 @@
+# Vercel does not honour .gitignore when the CLI uploads a deployment, so the
+# Sentry source-map upload token would otherwise be shipped into the build
+# environment on every `vercel deploy`. Supply SENTRY_AUTH_TOKEN through the
+# Vercel Sentry integration (or a project env var) instead.
+.env.sentry-build-plugin
+
+# Local-only env files
+.env
+.env.local
+.env.*.local
+
+# Local dev helpers
+dev-server.sh
+.claude
+.agents
+skills-lock.json
+
+# Build artifacts and caches
+.next
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+prisma/dev.db
+prisma/*.db-journal
