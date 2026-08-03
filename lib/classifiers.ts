@@ -26,8 +26,8 @@ const COUNTRY_REGION_MAP: Record<string, string> = {
   Madagascar: 'AFRO', Malawi: 'AFRO', Mali: 'AFRO', Mauritania: 'AFRO',
   Mauritius: 'AFRO', Mozambique: 'AFRO', Namibia: 'AFRO', Niger: 'AFRO',
   Nigeria: 'AFRO', Rwanda: 'AFRO', 'São Tomé and Príncipe': 'AFRO', Senegal: 'AFRO',
-  Seychelles: 'AFRO', 'Sierra Leone': 'AFRO', Somalia: 'AFRO', 'South Africa': 'AFRO',
-  'South Sudan': 'AFRO', Sudan: 'AFRO', Tanzania: 'AFRO', Togo: 'AFRO',
+  Seychelles: 'AFRO', 'Sierra Leone': 'AFRO', 'South Africa': 'AFRO',
+  'South Sudan': 'AFRO', Tanzania: 'AFRO', Togo: 'AFRO',
   Uganda: 'AFRO', Zambia: 'AFRO', Zimbabwe: 'AFRO',
 
   // AMRO — Americas
