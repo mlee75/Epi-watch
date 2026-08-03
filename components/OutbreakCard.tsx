@@ -24,9 +24,12 @@ export function OutbreakCard({ outbreak }: OutbreakCardProps) {
 
   const severity   = outbreak.severity as Severity;
   const borderColor = SEV_BORDER[severity] ?? '#a0a8c8';
-  const cfr = outbreak.cases > 0
-    ? ((outbreak.deaths / outbreak.cases) * 100).toFixed(1)
-    : '0';
+  // A count of 0 means the source never stated one, not that the true figure is
+  // zero — show a dash so an unreported count isn't read as a confirmed zero.
+  const hasCases = outbreak.cases > 0;
+  const cfr = hasCases
+    ? `${((outbreak.deaths / outbreak.cases) * 100).toFixed(1)}%`
+    : '—';
 
   const timeAgo = formatDistanceToNow(new Date(outbreak.reportDate), { addSuffix: true });
 
@@ -132,9 +135,9 @@ export function OutbreakCard({ outbreak }: OutbreakCardProps) {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[
-            { label: 'Cases',  value: fmtNum(outbreak.cases),  color: '#ffffff' },
-            { label: 'Deaths', value: fmtNum(outbreak.deaths), color: '#ff0000' },
-            { label: 'CFR',    value: `${cfr}%`,               color: '#a0a8c8' },
+            { label: 'Cases',  value: hasCases ? fmtNum(outbreak.cases) : '—',              color: '#ffffff' },
+            { label: 'Deaths', value: outbreak.deaths > 0 ? fmtNum(outbreak.deaths) : '—', color: '#ff0000' },
+            { label: 'CFR',    value: cfr,                                                 color: '#a0a8c8' },
           ].map(({ label, value, color }) => (
             <div
               key={label}
