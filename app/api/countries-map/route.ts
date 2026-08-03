@@ -4,6 +4,11 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { COUNTRY_COORDS } from '@/lib/countryCoords';
 
+// Takes no request params, so without this Next prerenders it at build time and
+// the globe's country shading never reflects newly ingested outbreaks. The
+// existing s-maxage header keeps the CDN doing the caching.
+export const dynamic = 'force-dynamic';
+
 // ── Country name list for mention detection ────────────────────────────────
 const ALL_COUNTRIES = Object.keys(COUNTRY_COORDS).filter(
   (k) => k !== 'Multiple Countries' && k !== 'Global' && k !== 'UAE' && k !== 'USA'

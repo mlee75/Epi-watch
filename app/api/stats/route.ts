@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
+// This route takes no request params, so Next would otherwise prerender it at
+// build time and serve those totals forever — the "live" counters would freeze
+// at whatever the database held during the last deploy. `revalidate` alone does
+// not lift that for a handler reading Prisma rather than fetch(), so opt out of
+// static generation explicitly and let the CDN header below do the caching.
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const [
@@ -87,6 +94,8 @@ export async function GET() {
         topDisease,
         regionBreakdown,
       },
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });
   } catch (err) {
     console.error('[GET /api/stats]', err);
