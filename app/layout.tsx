@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import * as Sentry from '@sentry/nextjs';
 import { Space_Grotesk, Space_Mono } from 'next/font/google';
 import './globals.css';
 import { AIChat } from '@/components/AIChat';
@@ -17,7 +18,17 @@ const spaceMono = Space_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
+// A function rather than a static `metadata` export so Sentry's trace headers
+// can be emitted per-request, linking server traces to browser errors. Next
+// permits only one of `metadata` / `generateMetadata`, so this replaces it.
+export function generateMetadata(): Metadata {
+  return {
+    ...baseMetadata,
+    other: { ...Sentry.getTraceData() },
+  };
+}
+
+const baseMetadata: Metadata = {
   title: 'Epi-Watch — Global Disease Outbreak Intelligence',
   description:
     'Real-time global disease outbreak monitoring. Track, classify, and visualize infectious disease events worldwide with data from WHO, CDC, ECDC, and ProMED.',
