@@ -1,28 +1,22 @@
 # Epi-Watch — Global Disease Outbreak Intelligence
 
-Real-time surveillance of infectious disease outbreaks worldwide. Automatically tracks,
-classifies, and visualizes events from WHO, CDC, and ProMED — styled as a professional
-intelligence dashboard.
+Surveillance dashboard for infectious disease outbreaks worldwide. Tracks, classifies, and
+visualises events on a 3D globe with a filterable intelligence feed.
 
----
-
-## Screenshots
-
-- **Map** — Dark CartoDB map with color-coded severity markers
-- **Intelligence Feed** — Card-based outbreak reports with filtering & live refresh
-- **Stats Bar** — Global totals: cases, deaths, countries affected
+**Live:** https://epi-watch-three.vercel.app
 
 ---
 
 ## Stack
 
-| Layer     | Technology |
-|-----------|-----------|
-| Frontend  | Next.js 14 (App Router) · TypeScript · Tailwind CSS |
-| Map       | Leaflet.js · CartoDB Dark Matter tiles (free, no key) |
-| Database  | Prisma ORM · SQLite (local) · PostgreSQL (production) |
-| Scraping  | Axios · Cheerio |
-| Deploy    | Vercel (frontend + API) · Vercel Cron (hourly scrape) |
+| Layer      | Technology |
+|------------|-----------|
+| Frontend   | Next.js 14 (App Router) · TypeScript · Tailwind CSS |
+| Globe      | react-globe.gl · three.js |
+| Database   | Prisma ORM · PostgreSQL (Neon) |
+| Ingestion  | rss-parser · Axios · Cheerio |
+| Monitoring | Sentry (errors, tracing, session replay) |
+| Deploy     | Vercel · Vercel Cron (daily) |
 
 ---
 
@@ -32,12 +26,13 @@ intelligence dashboard.
 
 - Node.js 18+
 - npm 9+
+- A PostgreSQL database — [Neon](https://neon.tech) has a free tier
 
 ### 1 — Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/epi-watch.git
-cd epi-watch
+git clone https://github.com/mlee75/Epi-watch.git
+cd Epi-watch
 npm install
 ```
 
@@ -45,17 +40,16 @@ npm install
 
 ```bash
 cp .env.example .env.local
-# No changes needed for local development with SQLite
 ```
+
+Set `DATABASE_URL` to your PostgreSQL connection string. The schema targets
+`postgresql`; there is no SQLite fallback.
 
 ### 3 — Database
 
 ```bash
-# Push schema to SQLite
-npm run db:push
-
-# Seed with 20 realistic outbreak examples
-npm run db:seed
+npm run db:push   # create tables
+npm run db:seed   # load 39 curated outbreak records
 ```
 
 ### 4 — Start
@@ -72,39 +66,30 @@ npm run dev
 ### `.env.local`
 
 ```env
-# SQLite for local dev (no setup required)
-DATABASE_URL="file:./dev.db"
+# PostgreSQL connection string (Neon, Supabase, Railway, …)
+DATABASE_URL="postgresql://user:password@host/db?sslmode=require"
 
-# Secret for manual scrape triggers
+# Protects the manual scrape endpoint
 SCRAPE_SECRET="your-random-secret"
 
-# Optional: richer AI summaries (leave blank to use rule-based)
+# Protects the Vercel Cron endpoint
+CRON_SECRET="your-random-secret"
+
+# Optional — richer AI summaries; falls back to rule-based when unset
 OPENAI_API_KEY=""
+
+# Optional — required only by /api/travel/risk-assessment
+ANTHROPIC_API_KEY=""
 
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
----
-
-## Triggering a Scrape
-
-**Manually** (via HTTP):
-```bash
-curl -X POST http://localhost:3000/api/scrape \
-  -H "Content-Type: application/json" \
-  -d '{"secret":"your-random-secret"}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "durationMs": 12450,
-  "added": 7,
-  "skipped": 3,
-  "sources": { "WHO": 8, "CDC": 2, "ProMED": 0 }
-}
-```
+Sentry is configured in `sentry.server.config.ts`, `sentry.edge.config.ts` and
+`instrumentation-client.ts`. The DSN in those files is public by design. Source-map
+upload needs a `SENTRY_AUTH_TOKEN`, supplied by the
+[Sentry Vercel integration](https://vercel.com/integrations/sentry) — the wizard also
+writes one to `.env.sentry-build-plugin` for local builds, which is gitignored and
+excluded from Vercel uploads via `.vercelignore`.
 
 ---
 
@@ -116,82 +101,44 @@ curl -X POST http://localhost:3000/api/scrape \
 |-------|--------|---------|
 | `severity` | `CRITICAL\|HIGH\|MEDIUM\|LOW\|ALL` | `ALL` |
 | `region` | `AFRO\|AMRO\|EMRO\|EURO\|SEARO\|WPRO\|ALL` | `ALL` |
-| `search` | string | — |
+| `search` | string (case-insensitive) | — |
 | `sort` | `recent\|severity\|cases\|deaths` | `recent` |
-| `limit` | 1–200 | `50` |
-| `offset` | integer | `0` |
+| `limit` | clamped to 1–200 | `50` |
+| `offset` | clamped to ≥ 0 | `0` |
+| `active` | `false` to include inactive | `true` |
 
-### `GET /api/outbreaks/:id`
+Non-numeric or out-of-range `limit`/`offset` fall back to the defaults rather than erroring.
 
-Single outbreak by ID.
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/outbreaks/:id` | Single outbreak |
+| `GET /api/outbreaks/:id/sources` | Linked source articles |
+| `GET /api/stats` | Aggregate totals by severity, region, disease |
+| `GET /api/countries-map` | Per-country severity shading for the globe |
+| `GET /api/countries/:code/intelligence` | Country-level detail |
+| `GET /api/news/live-feed` | Aggregated outbreak news |
+| `GET /api/ai/summary`, `/api/ai/overview`, `/api/ai/chat` | AI narrative layers |
+| `GET /api/travel/risk-assessment` | Travel risk scoring (needs `ANTHROPIC_API_KEY`) |
 
-### `GET /api/stats`
+### Protected endpoints
 
-Aggregate statistics: totals by severity, total cases/deaths, countries affected.
+| Endpoint | Auth | Notes |
+|----------|------|-------|
+| `GET /api/cron/update` | `Authorization: Bearer <CRON_SECRET>` | Called by Vercel Cron daily at 06:00 UTC |
+| `GET /api/scrape` | `Authorization: Bearer <CRON_SECRET>` | Full scraper run |
+| `POST /api/scrape` | body `{ "secret": "<SCRAPE_SECRET>" }` | Manual trigger |
 
-### `GET /api/scrape` *(Vercel Cron)*
-
-Triggered by Vercel Cron every hour. Requires `Authorization: Bearer <CRON_SECRET>` header.
-
-### `POST /api/scrape`
-
-Manual scrape trigger. Body: `{ "secret": "your-scrape-secret" }`
-
----
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. **Push to GitHub**
-2. **Import to Vercel** at vercel.com/new
-3. **Add environment variables** in Vercel dashboard:
-   ```
-   DATABASE_URL=postgresql://...   # see below
-   SCRAPE_SECRET=<random string>
-   CRON_SECRET=<same or different random string>
-   ```
-4. **Database — Neon (free PostgreSQL)**:
-   - Create account at neon.tech
-   - Create a project → copy the connection string
-   - In `prisma/schema.prisma`, change `provider = "sqlite"` → `provider = "postgresql"`
-   - Run `npx prisma db push` (from your local machine with the production DATABASE_URL)
-   - Run `npm run db:seed` to populate initial data
-5. **Deploy** → Vercel will build and deploy automatically
-
-> The `vercel.json` already configures a cron job that calls `/api/scrape` every hour.
-
-### Railway (Alternative backend)
-
-1. Create a Railway project
-2. Add a PostgreSQL service
-3. Set `DATABASE_URL` from Railway's connection string
-4. Deploy the repo — Railway auto-detects Next.js
-
-### Render (Alternative)
-
-Similar to Railway. Use Render's free PostgreSQL (90-day free tier) and deploy the
-Next.js app as a Web Service.
-
----
-
-## Switching from SQLite to PostgreSQL
-
-1. Change `prisma/schema.prisma`:
-   ```diff
-   datasource db {
-   -  provider = "sqlite"
-   +  provider = "postgresql"
-      url      = env("DATABASE_URL")
-   }
-   ```
-2. Set `DATABASE_URL` to your PostgreSQL connection string in `.env.local`
-3. Run `npm run db:push` to migrate schema
-4. Run `npm run db:seed` to seed data
+```bash
+curl -X POST https://epi-watch-three.vercel.app/api/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"your-scrape-secret"}'
+```
 
 ---
 
 ## Severity Classification
+
+Derived from reported case and death counts (`lib/classifiers.ts`):
 
 | Severity | Cases | Deaths |
 |----------|-------|--------|
@@ -204,19 +151,72 @@ Next.js app as a Web Service.
 
 ## Data Sources
 
-| Source | URL | Frequency |
-|--------|-----|-----------|
-| WHO Disease Outbreak News | who.int/emergencies/disease-outbreak-news | Daily |
-| CDC Outbreak Reports | cdc.gov/outbreaks | Daily |
-| ProMED Mail | promedmail.org | Multiple/day |
+The daily cron (`/api/cron/update`) reads these feeds:
+
+| Source | Feed |
+|--------|------|
+| CDC — Outbreaks, US Based | `tools.cdc.gov/api/v2/resources/media/285676.rss` |
+| Outbreak News Today | `outbreaknewstoday.com/feed/` |
+| Google News — outbreak query | `news.google.com/rss/search?q=disease+outbreak` |
+
+The broader scraper (`/api/scrape`, `lib/scrapers/`) additionally targets WHO, PAHO,
+CDC MMWR and ProMED. Several of those upstream endpoints have since moved or been
+retired, so coverage from that path is partial.
+
+### How counts are handled
+
+Case and death counts are read **only from a source's own headline**. Article bodies
+quote many incidental figures, and scanning them reliably picks the wrong one — so
+anything a source does not state is stored as `0` and rendered as `—` (unreported)
+rather than a confirmed zero. Cron-ingested records are flagged `verified: false` and
+carry an **UNVERIFIED** badge in the UI; the 39 seeded records are curated.
+
+---
+
+## Deployment
+
+### Vercel
+
+1. Push to GitHub and import at [vercel.com/new](https://vercel.com/new)
+2. Add a PostgreSQL database — the
+   [Neon integration](https://vercel.com/marketplace/neon) wires `DATABASE_URL`
+   automatically
+3. Set `SCRAPE_SECRET` and `CRON_SECRET` in project environment variables
+4. Run `npm run db:push && npm run db:seed` locally against the production
+   `DATABASE_URL` to create and populate the schema
+5. Deploy
+
+`vercel.json` registers one cron job hitting `/api/cron/update` at 06:00 UTC daily.
+Vercel's Hobby plan permits only daily crons — a more frequent schedule fails the
+deployment and requires Pro.
+
+### Railway / Render
+
+Both auto-detect Next.js. Provision PostgreSQL, set `DATABASE_URL`, and deploy the repo.
+
+---
+
+## Known Limitations
+
+- Several upstream WHO, ECDC and ProMED RSS endpoints now return 404; the cron uses the
+  three verified feeds listed above.
+- Headline-only count extraction is deliberately conservative and leaves many records
+  without figures.
+- `components/Map.tsx` (Leaflet) is not rendered anywhere — the homepage uses the 3D
+  globe. It remains in the tree along with its dependencies.
+- `next@14.2.21` carries a published security advisory; `axios` and `undici` have open
+  advisories and are used by the scrapers. Patching means a breaking upgrade to Next 15.
+- ESLint is not configured — `npm run lint` drops into Next's interactive setup.
 
 ---
 
 ## License
 
-MIT — free to use, modify, and deploy.
+No licence file is currently included, so default copyright applies and the code is
+**not** licensed for reuse. Add a `LICENSE` file to change that.
 
 ---
 
-*Data is aggregated from public health authorities. For official health guidance,
-always consult WHO, CDC, or your national health authority.*
+*Data is aggregated from public health authorities and news sources, and is not a
+substitute for official guidance. For authoritative information, consult WHO, CDC, or
+your national health authority.*
