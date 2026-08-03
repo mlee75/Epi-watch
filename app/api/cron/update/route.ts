@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       // Process latest 3 items from each source
       for (const item of feed.items.slice(0, 3)) {
         try {
-          const title = item.title || item.contentSnippet || '';
+          const title = cleanTitle(item.title || item.contentSnippet || '');
 
           if (!title || title.length < 10) continue;
 
@@ -141,6 +141,10 @@ function extractDisease(text: string): string {
     'Cholera', 'Typhoid', 'Malaria', 'Yellow Fever', 'Measles',
     'COVID-19', 'COVID', 'Mpox', 'Monkeypox', 'Plague', 'Anthrax',
     'Avian Influenza', 'Bird Flu', 'H5N1', 'Rabies', 'Polio',
+    // The CDC "Outbreaks — US Based" feed is predominantly foodborne; without
+    // these every CDC item collapsed to the "Infectious Disease" fallback.
+    'Salmonella', 'Listeria', 'Cyclospora', 'Norovirus', 'Botulism',
+    'Hepatitis A', 'Shigella', 'Campylobacter', 'Legionnaires', 'E. coli',
   ];
 
   const lowerText = text.toLowerCase();
@@ -172,6 +176,22 @@ function extractCountry(text: string): string {
     }
   }
   return 'Multiple Countries';
+}
+
+// CDC's feed marks up pathogen names ("<em>Salmonella</em> Outbreak Linked to
+// Shell Eggs") and some feeds escape entities. The title is stored as the
+// summary and rendered as plain text, so the markup has to come off first.
+function cleanTitle(raw: string): string {
+  return raw
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;|&#8217;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
