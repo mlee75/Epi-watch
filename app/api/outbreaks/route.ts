@@ -9,8 +9,15 @@ export async function GET(request: NextRequest) {
     const region = searchParams.get('region');
     const search = searchParams.get('search');
     const sort = searchParams.get('sort') || 'recent'; // recent|severity|cases|deaths
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    // Clamp to sane bounds; NaN from non-numeric input falls back to the default
+    // rather than reaching Prisma, where it would throw a 500.
+    const parsedLimit = parseInt(searchParams.get('limit') || '50');
+    const limit = Number.isNaN(parsedLimit)
+      ? 50
+      : Math.min(Math.max(parsedLimit, 1), 200);
+
+    const parsedOffset = parseInt(searchParams.get('offset') || '0');
+    const offset = Number.isNaN(parsedOffset) ? 0 : Math.max(parsedOffset, 0);
     const activeOnly = searchParams.get('active') !== 'false';
 
     // Build where clause
@@ -28,9 +35,9 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { disease: { contains: search } },
-        { country: { contains: search } },
-        { summary: { contains: search } },
+        { disease: { contains: search, mode: 'insensitive' } },
+        { country: { contains: search, mode: 'insensitive' } },
+        { summary: { contains: search, mode: 'insensitive' } },
       ];
     }
 
