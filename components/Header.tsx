@@ -107,6 +107,7 @@ export function Header() {
               { label: 'Map',       href: '/#map'      },
               { label: 'Outbreaks', href: '/outbreaks' },
               { label: 'News',      href: '/news'      },
+              { label: 'Video',     href: '/videos'    },
               { label: 'Stats',     href: '/#stats'    },
             ].map((item) => (
               <a

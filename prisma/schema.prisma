@@ -57,6 +57,7 @@ model Outbreak {
 
   // Relations
   sources     OutbreakSource[]
+  videos      OutbreakVideo[]
 
   @@index([severity])
   @@index([region])
@@ -101,4 +102,53 @@ model OutbreakSource {
 
   @@index([outbreakId])
   @@index([publishedAt(sort: Desc)])
+}
+
+/// Video intelligence sourced exclusively from allowlisted public health
+/// authority channels (see lib/videoSources.ts). Every row is, by construction,
+/// published by a named authority — there is no path for arbitrary internet
+/// video to reach this table.
+model OutbreakVideo {
+  id            String    @id @default(cuid())
+
+  // Platform identity
+  platform      String    @default("youtube")
+  videoId       String                        // platform-native id
+  channelId     String                        // must be on the allowlist
+  channelName   String
+  /// Publishing body, e.g. WHO | CDC | PAHO. Shown as the provenance label.
+  authority     String
+
+  // Content
+  title         String
+  description   String?
+  url           String                        // canonical watch URL
+  embedUrl      String
+  thumbnailUrl  String?
+  language      String    @default("en")
+
+  publishedAt   DateTime
+
+  // Topic classification, derived from title/description by lib/feedText.
+  // Null means no confident match rather than "none" — the UI must not imply
+  // a video is about a disease or place we did not actually detect.
+  disease       String?
+  country       String?
+  region        String?
+
+  /// Set only when disease AND country both match an outbreak. A weaker link
+  /// would attach official footage to events it does not discuss.
+  outbreakId    String?
+  outbreak      Outbreak? @relation(fields: [outbreakId], references: [id], onDelete: SetNull)
+
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([platform, videoId])
+  @@index([publishedAt(sort: Desc)])
+  @@index([authority])
+  @@index([disease])
+  @@index([country])
+  @@index([outbreakId])
 }
