@@ -82,16 +82,24 @@ function escapeRegex(term: string): string {
 }
 
 /**
- * JavaScript's \b is defined against [A-Za-z0-9_], so it misfires on Arabic
- * and other non-Latin scripts — every script boundary reads as a word
- * boundary. Latin-script terms get real word anchoring; others fall back to a
- * plain containment test, which is safe because the risk being guarded against
- * (a short acronym hiding inside a longer English word) does not arise there.
+ * Unicode-aware word boundaries.
+ *
+ * JavaScript's \b is defined against [A-Za-z0-9_], which breaks in both
+ * directions here: it misfires across non-Latin scripts, and it fails outright
+ * on accented terms — `\bépidémie` never matches a string starting "Épidémie",
+ * because "É" is not a \w character so no boundary exists before it.
+ *
+ * Lookarounds against \p{L}\p{N} under the 'u' flag give a boundary that holds
+ * for every script the feeds actually publish in.
+ *
+ * `prefix` mode drops the trailing boundary so a stem matches its inflections
+ * ("epidemiolog" → "epidemiological"); the leading boundary is always kept,
+ * since that is what stops "MERS" matching inside "consumers".
  */
-function termMatcher(term: string): RegExp {
-  const isLatin = /^[\x20-\x7EÀ-ɏ]+$/.test(term);
+export function termMatcher(term: string, mode: 'word' | 'prefix' = 'word'): RegExp {
   const escaped = escapeRegex(term);
-  return isLatin ? new RegExp(`\\b${escaped}\\b`, 'i') : new RegExp(escaped, 'i');
+  const trailing = mode === 'word' ? '(?![\\p{L}\\p{N}])' : '';
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}${trailing}`, 'iu');
 }
 
 /**

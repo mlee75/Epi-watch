@@ -116,8 +116,12 @@ model OutbreakVideo {
   videoId       String                        // platform-native id
   channelId     String                        // must be on the allowlist
   channelName   String
-  /// Publishing body, e.g. WHO | CDC | PAHO. Shown as the provenance label.
+  /// Publishing body, e.g. WHO | CDC | PAHO | Reuters. The provenance label.
   authority     String
+  /// authority = public health body (official guidance)
+  /// news       = established newsroom (reporting, not guidance)
+  /// Kept distinct so a news segment is never presented as an official position.
+  sourceType    String    @default("authority")
 
   // Content
   title         String
@@ -148,6 +152,7 @@ model OutbreakVideo {
   @@unique([platform, videoId])
   @@index([publishedAt(sort: Desc)])
   @@index([authority])
+  @@index([sourceType])
   @@index([disease])
   @@index([country])
   @@index([outbreakId])

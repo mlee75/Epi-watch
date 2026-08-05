@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { VideoIntelSidebar } from '@/components/VideoIntelSidebar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -256,6 +257,11 @@ export default function LiveNewsFeed() {
           </div>
         )}
 
+        {/* Article list beside the verified-video rail. The rail drops below the
+            list on narrow screens rather than competing with it for width. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+          <div style={{ minWidth: 0 }}>
+
         {/* Article count */}
         <div className="flex items-center justify-between mb-6">
           <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--font-mono), monospace' }}>
@@ -267,7 +273,7 @@ export default function LiveNewsFeed() {
 
         {/* Loading skeleton */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="rounded-xl overflow-hidden" style={{
                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
@@ -282,7 +288,7 @@ export default function LiveNewsFeed() {
             ))}
           </div>
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filtered.map((article, i) => (
               <ArticleCard key={`${article.url}-${i}`} article={article} featured={i === 0} index={i} />
             ))}
@@ -295,6 +301,10 @@ export default function LiveNewsFeed() {
             <p style={{ fontSize: 13, color: '#4b5563' }}>Try a different filter or search term</p>
           </div>
         )}
+
+          </div>
+          <VideoIntelSidebar />
+        </div>
       </div>
 
       <style>{`

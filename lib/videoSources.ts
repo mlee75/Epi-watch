@@ -17,9 +17,28 @@
  * name you saw in `channelName` so the entry can be re-checked later.
  */
 
+/**
+ * Two tiers, kept distinct because they warrant different trust.
+ *
+ * `authority` — a public health body. Its output is official guidance, and
+ * everything it publishes is health-relevant by definition.
+ *
+ * `news` — an established news organisation. Editorially independent and
+ * verifiable as a publisher, but reporting rather than official guidance. These
+ * channels publish across every beat, so only health-relevant items are taken
+ * (see isHealthRelevant in lib/scrapers/video.ts).
+ *
+ * Collapsing these two into one "verified" bucket would let a news segment read
+ * as a WHO position, so the distinction is carried through the model and shown
+ * in the UI.
+ */
+export type VideoSourceType = 'authority' | 'news';
+
 export interface VideoSource {
   /** Publishing body. Shown to users as the provenance label. */
   authority: string;
+  /** Trust tier — determines both filtering and how the UI labels the item. */
+  sourceType: VideoSourceType;
   /** YouTube channel ID. The unit of trust — the allowlist key. */
   channelId: string;
   /** Channel name as returned by the feed when this entry was added/verified. */
@@ -31,14 +50,17 @@ export interface VideoSource {
 }
 
 export const VIDEO_SOURCES: VideoSource[] = [
+  // ── Public health authorities ──────────────────────────────────────────────
   {
     authority: 'WHO',
+    sourceType: 'authority',
     channelId: 'UC07-dOwgza1IguKA86jqxNA',
     channelName: 'World Health Organization (WHO)',
     language: 'en',
   },
   {
     authority: 'CDC',
+    sourceType: 'authority',
     channelId: 'UCiMg06DjcUk5FRiM3g5sqoQ',
     channelName: 'Centers for Disease Control and Prevention',
     language: 'en',
@@ -46,6 +68,7 @@ export const VIDEO_SOURCES: VideoSource[] = [
   },
   {
     authority: 'PAHO',
+    sourceType: 'authority',
     channelId: 'UCpNnv_kL4Jk8YG_VflnZpmg',
     channelName: 'PAHO TV',
     language: 'es',
@@ -53,10 +76,82 @@ export const VIDEO_SOURCES: VideoSource[] = [
   },
   {
     authority: 'WHO EMRO',
+    sourceType: 'authority',
     channelId: 'UCT7a_fVlSrjOs9jyvtH-uhA',
     channelName: 'WHO Eastern Mediterranean Region',
     language: 'ar',
     region: 'EMRO',
+  },
+  {
+    authority: 'WHO WPRO',
+    sourceType: 'authority',
+    channelId: 'UC6LJqxyUlipQDnD6qpbltgg',
+    channelName: 'World Health Organization Regional Office for the Western Pacific',
+    language: 'en',
+    region: 'WPRO',
+  },
+
+  // ── News organisations ─────────────────────────────────────────────────────
+  // Reporting, not official guidance. Only health-relevant items are ingested.
+  {
+    authority: 'Reuters',
+    sourceType: 'news',
+    channelId: 'UChqUTb7kYRX8-EiaN3XFrSQ',
+    channelName: 'Reuters',
+    language: 'en',
+  },
+  {
+    authority: 'Associated Press',
+    sourceType: 'news',
+    channelId: 'UC52X5wxOL_s5yw0dQk7NtgA',
+    channelName: 'Associated Press',
+    language: 'en',
+  },
+  {
+    authority: 'Al Jazeera English',
+    sourceType: 'news',
+    channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg',
+    channelName: 'Al Jazeera English',
+    language: 'en',
+  },
+  {
+    authority: 'DW News',
+    sourceType: 'news',
+    channelId: 'UCknLrEdhRCp1aegoMqRaCZg',
+    channelName: 'DW News',
+    language: 'en',
+  },
+  {
+    authority: 'franceinfo',
+    sourceType: 'news',
+    channelId: 'UCO6K_kkdP-lnSCiO3tPx7WA',
+    channelName: 'franceinfo',
+    language: 'fr',
+    region: 'EURO',
+  },
+  {
+    authority: 'africanews',
+    sourceType: 'news',
+    channelId: 'UC1_E8NeF5QHY2dtdLRBCCLA',
+    channelName: 'africanews',
+    language: 'en',
+    region: 'AFRO',
+  },
+  {
+    authority: 'NHK WORLD-JAPAN',
+    sourceType: 'news',
+    channelId: 'UCSPEjw8F2nQDtmUKPFNF7_A',
+    channelName: 'NHK WORLD-JAPAN',
+    language: 'en',
+    region: 'WPRO',
+  },
+  {
+    authority: 'CNA Insider',
+    sourceType: 'news',
+    channelId: 'UC_Lnb8ZHqqgLbp-7hltuT9w',
+    channelName: 'CNA Insider',
+    language: 'en',
+    region: 'WPRO',
   },
 ];
 

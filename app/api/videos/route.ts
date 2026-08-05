@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const authority = searchParams.get('authority');
+    const sourceType = searchParams.get('sourceType');
     const disease = searchParams.get('disease');
     const country = searchParams.get('country');
     const outbreakId = searchParams.get('outbreakId');
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = { isActive: true };
 
     if (authority && authority !== 'ALL') where.authority = authority;
+    if (sourceType && sourceType !== 'ALL') where.sourceType = sourceType;
     if (disease && disease !== 'ALL') where.disease = disease;
     if (country && country !== 'ALL') where.country = country;
     if (outbreakId) where.outbreakId = outbreakId;
@@ -60,6 +62,7 @@ export async function GET(request: NextRequest) {
           // just asserted in the UI.
           verifiedSources: VIDEO_SOURCES.map((s) => ({
             authority: s.authority,
+            sourceType: s.sourceType,
             channelName: s.channelName,
             channelId: s.channelId,
             language: s.language,

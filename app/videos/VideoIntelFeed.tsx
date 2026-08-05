@@ -14,6 +14,7 @@ interface IntelVideo {
   id: string;
   videoId: string;
   authority: string;
+  sourceType: string;
   channelName: string;
   title: string;
   description: string | null;
@@ -30,6 +31,7 @@ interface IntelVideo {
 
 interface VerifiedSource {
   authority: string;
+  sourceType: string;
   channelName: string;
   channelId: string;
   language: string;
@@ -108,8 +110,9 @@ export default function VideoIntelFeed() {
           VERIFIED <span style={{ color: '#ff4d4d' }}>VIDEO</span>
         </h1>
         <p style={{ color: '#a0a8c8', maxWidth: 720, lineHeight: 1.6 }}>
-          Briefings and field reports published by public health authorities. Only channels on
-          an explicit allowlist are ingested — nothing is pulled from open search.
+          Outbreak briefings, epidemiological reports and field coverage — including
+          foreign-language reporting. Sourced only from channels on an explicit allowlist;
+          nothing is pulled from open search.
         </p>
       </div>
 
@@ -126,13 +129,16 @@ export default function VideoIntelFeed() {
           WHAT &ldquo;VERIFIED&rdquo; MEANS HERE
         </div>
         <p style={{ fontSize: 13, color: '#a0a8c8', lineHeight: 1.6, marginBottom: 10 }}>
-          Every item below was published by one of the channels listed here, each belonging to a
-          named health authority. This attests to <strong style={{ color: '#e8ecf8' }}>who
-          published a video</strong> — it is not a fact-check of its contents, and topic labels
-          are inferred from titles.
+          Every item was published by one of the channels listed below. This attests to{' '}
+          <strong style={{ color: '#e8ecf8' }}>who published a video</strong> — it is not a
+          fact-check of its contents, and topic labels are inferred from titles.{' '}
+          <strong style={{ color: '#5fd3a6' }}>OFFICIAL</strong> marks a public health
+          authority; <strong style={{ color: '#f0a868' }}>NEWS</strong> marks a news
+          organisation, whose clips are reporting rather than official guidance and are
+          admitted only when the headline itself is about health.
         </p>
         <div className="flex flex-wrap gap-2">
-          {sources.map((s) => (
+          {[...sources].sort((a, b) => a.sourceType.localeCompare(b.sourceType)).map((s) => (
             <span
               key={s.channelId}
               className="rounded-md px-2 py-1"
@@ -141,9 +147,11 @@ export default function VideoIntelFeed() {
                 fontSize: 10,
                 background: '#0a0e20',
                 border: '1px solid #1e2749',
-                color: AUTHORITY_COLOR[s.authority] ?? '#a0a8c8',
+                color: s.sourceType === 'authority'
+                  ? (AUTHORITY_COLOR[s.authority] ?? '#5fd3a6')
+                  : '#f0a868',
               }}
-              title={`Channel ID ${s.channelId}`}
+              title={`${s.sourceType === 'authority' ? 'Health authority' : 'News organisation'} · channel ${s.channelId}`}
             >
               {s.channelName}
             </span>
@@ -273,6 +281,16 @@ export default function VideoIntelFeed() {
 
               <div className="p-4 flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span
+                    className="rounded px-1.5 py-0.5"
+                    style={{
+                      fontFamily: mono, fontSize: 9, letterSpacing: '0.08em',
+                      color: v.sourceType === 'authority' ? '#5fd3a6' : '#f0a868',
+                      border: `1px solid ${v.sourceType === 'authority' ? '#5fd3a6' : '#f0a868'}55`,
+                    }}
+                  >
+                    {v.sourceType === 'authority' ? 'OFFICIAL' : 'NEWS'}
+                  </span>
                   <span
                     className="rounded px-1.5 py-0.5"
                     style={{

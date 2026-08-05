@@ -8,6 +8,7 @@ import {
   cleanTitle,
   extractCountry,
   extractDisease,
+  termMatcher,
   withTimeout,
 } from '@/lib/feedText';
 import {
@@ -52,6 +53,7 @@ interface VideoFeedItem {
 
 export interface VideoIngestResult {
   authority: string;
+  sourceType: string;
   channelId: string;
   added: number;
   linked: number;
@@ -123,6 +125,12 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
         );
 
         const classified = classify(title, description, source);
+
+        // Authority channels are health bodies, so everything they publish
+        // belongs here. News channels cover every beat, so an unfiltered feed
+        // would bury outbreak reporting under politics and sport.
+        if (source.sourceType === 'news' && !isHealthRelevant(title)) continue;
+
         const outbreakId = await findLinkedOutbreak(classified.disease, classified.country);
 
         const publishedAt = new Date(item.published ?? item.pubDate ?? Date.now());
@@ -133,6 +141,7 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
           channelId: source.channelId,
           channelName: source.channelName,
           authority: source.authority,
+          sourceType: source.sourceType,
           title,
           description: description || null,
           url: item.link ?? watchUrlFor(videoId),
@@ -157,6 +166,7 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
           where: { platform_videoId: { platform: 'youtube', videoId } },
           create: data,
           update: {
+            sourceType: data.sourceType,
             title: data.title,
             description: data.description,
             thumbnailUrl: data.thumbnailUrl,
@@ -173,6 +183,7 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
 
       return {
         authority: source.authority,
+        sourceType: source.sourceType,
         channelId: source.channelId,
         added,
         linked,
@@ -184,6 +195,7 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
     // reported per source rather than thrown.
     return {
       authority: source.authority,
+      sourceType: source.sourceType,
       channelId: source.channelId,
       added: 0,
       linked: 0,
@@ -191,6 +203,54 @@ async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+/**
+ * Health-relevance gate for news channels.
+ *
+ * A named disease is sufficient on its own. Otherwise at least one epidemic
+ * term must appear as a whole word — "outbreak", "epidemic", "quarantine" and
+ * so on. Multilingual because the allowlist includes French and other
+ * non-English newsrooms.
+ *
+ * This errs towards excluding: a missed outbreak clip is a gap, whereas an
+ * unrelated news segment sitting on a disease dashboard reads as if it were
+ * outbreak coverage.
+ */
+const HEALTH_TERMS = [
+  'outbreak', 'epidemic', 'pandemic', 'virus', 'infection', 'infectious',
+  'disease', 'contagion', 'quarantine', 'vaccination', 'vaccine', 'immunisation',
+  'immunization', 'public health', 'health emergency', 'health officials',
+  'epidemiolog', 'contagious', 'mortality rate', 'World Health Organization',
+  // fr
+  'épidémie', 'epidemie', 'pandémie', 'contagion', 'santé publique', 'flambée',
+  'vaccin', 'épidémiolog', 'maladie infectieuse', 'grippe',
+  // es
+  'brote', 'epidemia', 'pandemia', 'vacunación', 'salud pública', 'contagio',
+];
+
+// Acronyms are matched case-sensitively and separately: a case-insensitive
+// \bWHO also matches the pronoun "who", which appears in a large share of news
+// headlines and would wave through essentially everything.
+const HEALTH_ACRONYMS = ['WHO', 'CDC', 'ECDC', 'PAHO', 'UNICEF'];
+
+const HEALTH_MATCHERS = [
+  // Prefix mode so stems catch inflections ("vaccin" → "vaccine",
+  // "vaccination", "vacuna"), via the shared Unicode-aware boundary helper.
+  ...HEALTH_TERMS.map((t) => termMatcher(t, 'prefix')),
+  ...HEALTH_ACRONYMS.map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${t}(?![\\p{L}\\p{N}])`, 'u')),
+];
+
+/**
+ * Judged on the headline alone, for the same reason counts are: descriptions
+ * carry incidental references that read as topicality but are not. "The US box
+ * office is on pace for its best year since the pandemic" matched on
+ * `pandemic` and admitted a film-industry segment. A newsroom that is actually
+ * covering an outbreak says so in the title.
+ */
+export function isHealthRelevant(title: string): boolean {
+  if (extractDisease(title) !== UNKNOWN_DISEASE) return true;
+  return HEALTH_MATCHERS.some((m) => m.test(title));
 }
 
 /**
