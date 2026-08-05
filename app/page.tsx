@@ -1,6 +1,7 @@
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Header } from '@/components/Header';
+import { LiveTvPanel } from '@/components/LiveTvPanel';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Footer } from '@/components/Footer';
 import TravelRiskCalculator from '@/components/TravelRiskCalculator';
@@ -153,6 +154,9 @@ export default async function HomePage() {
             className="absolute top-0 left-0 right-0 pointer-events-none"
             style={{ height: 120, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)' }}
           />
+
+          {/* ── Live regional news — top-left overlay ──────────────────── */}
+          <LiveTvPanel />
 
           {/* ── Compact Stats Bar — bottom overlay ─────────────────────── */}
           <div className="absolute bottom-0 left-0 right-0 z-10">

@@ -31,7 +31,9 @@ export function AIChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Listen for external "Ask AI" triggers (from StatsBar, AISummary, etc.)
+  // Listen for external "Ask AI" triggers. Nothing currently dispatches
+  // 'open-ai-chat' — the components that did were unused and have been removed —
+  // but the listener is kept as the integration point for future callers.
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { question?: string } | undefined;

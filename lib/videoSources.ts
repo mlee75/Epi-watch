@@ -155,6 +155,70 @@ export const VIDEO_SOURCES: VideoSource[] = [
   },
 ];
 
+/**
+ * Continuous news channels, grouped by region, for the live rail on the globe.
+ *
+ * These carry the same allowlist guarantee as VIDEO_SOURCES: each entry is a
+ * named newsroom, checked by resolving the channel ID and reading the channel
+ * name back from its feed. They are general news channels, not health
+ * programming — the widget labels them as regional news, not outbreak coverage.
+ *
+ * Streams are embedded via YouTube's `live_stream?channel=` endpoint, which
+ * resolves whatever that channel is currently broadcasting without an API key.
+ * A channel that is not live simply shows YouTube's offline state, so the UI
+ * says a stream may be off air rather than promising continuous video.
+ */
+export interface LiveChannel {
+  region: string;
+  label: string;
+  channelId: string;
+  channelName: string;
+  language: string;
+}
+
+export const LIVE_CHANNELS: LiveChannel[] = [
+  {
+    region: 'AFRO',
+    label: 'Africa',
+    channelId: 'UC1_E8NeF5QHY2dtdLRBCCLA',
+    channelName: 'africanews',
+    language: 'en',
+  },
+  {
+    region: 'AMRO',
+    label: 'Americas',
+    channelId: 'UCBi2mrWuNuyYy4gbM6fU18Q',
+    channelName: 'ABC News',
+    language: 'en',
+  },
+  {
+    region: 'EMRO',
+    label: 'Mid. East',
+    channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg',
+    channelName: 'Al Jazeera English',
+    language: 'en',
+  },
+  {
+    region: 'EURO',
+    label: 'Europe',
+    channelId: 'UCknLrEdhRCp1aegoMqRaCZg',
+    channelName: 'DW News',
+    language: 'en',
+  },
+  {
+    region: 'WPRO',
+    label: 'Asia-Pac.',
+    channelId: 'UCSPEjw8F2nQDtmUKPFNF7_A',
+    channelName: 'NHK WORLD-JAPAN',
+    language: 'en',
+  },
+];
+
+/** Resolves to whatever the channel is currently broadcasting; no API key. */
+export function liveEmbedUrlFor(channelId: string): string {
+  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${channelId}`;
+}
+
 /** YouTube exposes per-channel Atom feeds with no API key or quota. */
 export function feedUrlFor(source: VideoSource): string {
   return `https://www.youtube.com/feeds/videos.xml?channel_id=${source.channelId}`;
