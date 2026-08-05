@@ -85,13 +85,23 @@ function thumbnailFrom(item: VideoFeedItem): string | undefined {
  * classification runs afterwards and is allowed to conclude nothing.
  */
 export async function ingestVideos(): Promise<VideoIngestSummary> {
-  const results: VideoIngestResult[] = [];
-  let totalAdded = 0;
-  let totalLinked = 0;
-  let errors = 0;
+  // Channels are fetched concurrently. Sequentially they shared the cron's
+  // 60s budget with the article feeds, and a worst case of every feed hitting
+  // its 12s timeout (3 article + 4 video) overran it and killed the function
+  // mid-run. The channels are independent, so only the slowest one costs time.
+  const settled = await Promise.all(VIDEO_SOURCES.map((source) => ingestChannel(source)));
 
-  for (const source of VIDEO_SOURCES) {
-    try {
+  return {
+    totalAdded: settled.reduce((n, r) => n + r.added, 0),
+    totalLinked: settled.reduce((n, r) => n + r.linked, 0),
+    errors: settled.filter((r) => !r.success).length,
+    sources: settled,
+  };
+}
+
+async function ingestChannel(source: VideoSource): Promise<VideoIngestResult> {
+  try {
+    {
       const feed = await withTimeout(parser.parseURL(feedUrlFor(source)), FEED_TIMEOUT_MS);
       let added = 0;
       let linked = 0;
@@ -161,29 +171,26 @@ export async function ingestVideos(): Promise<VideoIngestSummary> {
         if (outbreakId) linked++;
       }
 
-      totalAdded += added;
-      totalLinked += linked;
-      results.push({
+      return {
         authority: source.authority,
         channelId: source.channelId,
         added,
         linked,
         success: true,
-      });
-    } catch (error) {
-      errors++;
-      results.push({
-        authority: source.authority,
-        channelId: source.channelId,
-        added: 0,
-        linked: 0,
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      };
     }
+  } catch (error) {
+    // One unreachable channel must not sink the others, so the failure is
+    // reported per source rather than thrown.
+    return {
+      authority: source.authority,
+      channelId: source.channelId,
+      added: 0,
+      linked: 0,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
-
-  return { totalAdded, totalLinked, errors, sources: results };
 }
 
 /**

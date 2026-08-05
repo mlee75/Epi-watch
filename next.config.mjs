@@ -12,6 +12,30 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: false },
   images: { remotePatterns: [] },
 
+  // Only headers with no breakage risk for this app are set here. A full CSP
+  // is deliberately not included: the globe pulls textures from unpkg and
+  // GeoJSON from github.io, and the video page frames youtube-nocookie, so a
+  // policy needs its own verification pass rather than being asserted blind.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // The dashboard is never meant to be framed; this is the clickjacking
+          // control. It does not affect the YouTube iframes the page embeds,
+          // which are about what we frame, not who frames us.
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+          },
+        ],
+      },
+    ];
+  },
+
   webpack: (config, { webpack }) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
 

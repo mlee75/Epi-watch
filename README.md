@@ -15,6 +15,7 @@ visualises events on a 3D globe with a filterable intelligence feed.
 | Globe      | react-globe.gl · three.js |
 | Database   | Prisma ORM · PostgreSQL (Neon) |
 | Ingestion  | rss-parser · Axios · Cheerio |
+| Video      | YouTube channel Atom feeds (no API key) · `youtube-nocookie` embeds |
 | Monitoring | Sentry (errors, tracing, session replay) |
 | Deploy     | Vercel · Vercel Cron (daily) |
 
@@ -117,6 +118,7 @@ Non-numeric or out-of-range `limit`/`offset` fall back to the defaults rather th
 | `GET /api/countries-map` | Per-country severity shading for the globe |
 | `GET /api/countries/:code/intelligence` | Country-level detail |
 | `GET /api/news/live-feed` | Aggregated outbreak news |
+| `GET /api/videos` | Verified video intelligence — see below |
 | `GET /api/ai/summary`, `/api/ai/overview`, `/api/ai/chat` | AI narrative layers |
 | `GET /api/travel/risk-assessment` | Travel risk scoring (needs `ANTHROPIC_API_KEY`) |
 
@@ -163,6 +165,43 @@ The broader scraper (`/api/scrape`, `lib/scrapers/`) additionally targets WHO, P
 CDC MMWR and ProMED. Several of those upstream endpoints have since moved or been
 retired, so coverage from that path is partial.
 
+### Verified video intelligence
+
+The `/videos` page carries outbreak briefings and field reports published by
+health authorities. **"Verified" here means one specific thing: the video was
+published by a channel on an explicit allowlist**, every entry of which belongs
+to a named health authority. It attests to *who published a video* — it is not
+a fact-check of the contents, and topic labels are inferred from titles.
+
+| Authority | Channel | Language |
+|-----------|---------|----------|
+| WHO | World Health Organization (WHO) | en |
+| CDC | Centers for Disease Control and Prevention | en |
+| PAHO | PAHO TV | es |
+| WHO EMRO | WHO Eastern Mediterranean Region | ar |
+
+Nothing is pulled from open search — there is no code path by which arbitrary
+internet video reaches the database. Channels are hardcoded in
+`lib/videoSources.ts` rather than resolved from handles at runtime, because
+handle resolution was tested and silently returned the wrong channel
+(`youtube.com/@WHO` resolves to WHO's regional EMRO channel, not the global
+one). Ingestion additionally discards any feed entry whose `channelId` does not
+match the allowlist entry that produced the request.
+
+Sourcing uses YouTube's per-channel Atom feeds, so no API key or quota is
+needed. Embeds use `youtube-nocookie` and load only on click, so viewing the
+page sets no third-party cookies.
+
+A video is linked to an outbreak only when **both** disease and country match
+an active record. A disease-only match would attach a general WHO cholera
+explainer to an unrelated country's outbreak. Where nothing matches, the topic
+fields are stored as `null` rather than a placeholder, so an inference is never
+rendered as a claim.
+
+To add a channel: confirm the channel ID resolves to the authority you expect
+by fetching its feed and reading the `<name>` element, then record that name in
+the allowlist entry so it can be re-checked later.
+
 ### How counts are handled
 
 Case and death counts are read **only from a source's own headline**. Article bodies
@@ -202,6 +241,10 @@ Both auto-detect Next.js. Provision PostgreSQL, set `DATABASE_URL`, and deploy t
   three verified feeds listed above.
 - Headline-only count extraction is deliberately conservative and leaves many records
   without figures.
+- Video topic classification depends on a disease name appearing in the title or
+  description. Much of what these channels publish is general health content that names
+  no specific disease, so most videos carry no topic label and therefore no outbreak
+  link. That is accurate output, not a gap in coverage.
 - `components/Map.tsx` (Leaflet) is not rendered anywhere — the homepage uses the 3D
   globe. It remains in the tree along with its dependencies.
 - `next@14.2.21` carries a published security advisory; `axios` and `undici` have open
