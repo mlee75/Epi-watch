@@ -16,6 +16,7 @@ visualises events on a 3D globe with a filterable intelligence feed.
 | Database   | Prisma ORM · PostgreSQL (Neon) |
 | Ingestion  | rss-parser · Axios · Cheerio |
 | Video      | YouTube channel Atom feeds (no API key) · `youtube-nocookie` embeds |
+| Health     | Daily automated check — see below |
 | Monitoring | Sentry (errors, tracing, session replay) |
 | Deploy     | Vercel · Vercel Cron (daily) |
 
@@ -167,11 +168,19 @@ retired, so coverage from that path is partial.
 
 ### Verified video intelligence
 
-The `/videos` page carries outbreak briefings and field reports published by
-health authorities. **"Verified" here means one specific thing: the video was
-published by a channel on an explicit allowlist**, every entry of which belongs
-to a named health authority. It attests to *who published a video* — it is not
-a fact-check of the contents, and topic labels are inferred from titles.
+Outbreak briefings, epidemiological reports and field coverage appear on the
+`/videos` page and in a rail beside the article feed on `/news`.
+
+**"Verified" here means one specific thing: the video was published by a
+channel on an explicit allowlist.** It attests to *who published a video* — it
+is not a fact-check of the contents, and topic labels are inferred from titles.
+
+Sources sit in two tiers, kept distinct because they warrant different trust.
+Collapsing them would let a news segment read as an official position, so the
+tier is stored on every row and shown as a badge in the UI.
+
+**`OFFICIAL` — public health authorities.** Everything they publish is
+health-relevant by definition, so all of it is ingested.
 
 | Authority | Channel | Language |
 |-----------|---------|----------|
@@ -179,6 +188,24 @@ a fact-check of the contents, and topic labels are inferred from titles.
 | CDC | Centers for Disease Control and Prevention | en |
 | PAHO | PAHO TV | es |
 | WHO EMRO | WHO Eastern Mediterranean Region | ar |
+| WHO WPRO | WHO Regional Office for the Western Pacific | en |
+
+**`NEWS` — established newsrooms.** Reporting rather than official guidance.
+These channels cover every beat, so an item is only ingested when its
+**headline** is about health — judged on the headline alone, because
+descriptions carry incidental references ("its best year since the pandemic")
+that read as topicality but are not.
+
+| Source | Channel | Language |
+|--------|---------|----------|
+| Reuters | Reuters | en |
+| Associated Press | Associated Press | en |
+| Al Jazeera English | Al Jazeera English | en |
+| DW News | DW News | en |
+| franceinfo | franceinfo | fr |
+| africanews | africanews | en |
+| NHK WORLD-JAPAN | NHK WORLD-JAPAN | en |
+| CNA Insider | CNA Insider | en |
 
 Nothing is pulled from open search — there is no code path by which arbitrary
 internet video reaches the database. Channels are hardcoded in
@@ -198,9 +225,30 @@ explainer to an unrelated country's outbreak. Where nothing matches, the topic
 fields are stored as `null` rather than a placeholder, so an inference is never
 rendered as a claim.
 
-To add a channel: confirm the channel ID resolves to the authority you expect
-by fetching its feed and reading the `<name>` element, then record that name in
+To add a channel: confirm the channel ID resolves to the source you expect by
+fetching its feed and reading the `<name>` element, then record that name in
 the allowlist entry so it can be re-checked later.
+
+### Live regional TV
+
+A small collapsible panel at the top-left of the globe carries one continuous
+news channel per WHO region:
+
+| Region | Channel |
+|--------|---------|
+| Africa | africanews |
+| Americas | ABC News |
+| Middle East | Al Jazeera English |
+| Europe | DW News |
+| Asia-Pacific | NHK WORLD-JAPAN |
+
+Streams are embedded through YouTube's `live_stream?channel=` endpoint, which
+resolves whatever a channel is currently broadcasting without an API key. The
+panel is collapsed to a strip until a region is selected, so nothing loads from
+the video host on page view.
+
+These are **general news channels, not outbreak coverage**, and a stream may be
+off air. The panel states both rather than implying continuous outbreak video.
 
 ### How counts are handled
 
@@ -235,6 +283,29 @@ Both auto-detect Next.js. Provision PostgreSQL, set `DATABASE_URL`, and deploy t
 
 ---
 
+## Automated health check
+
+A scheduled cloud agent runs a full check every day at **08:00 UTC**, two hours
+after the ingestion cron, so a failed ingestion surfaces the same day. It runs
+against a fresh checkout plus the public API — it has no database credentials,
+so data health is judged from what the site actually serves.
+
+It covers build and typecheck, dead-code candidates, live endpoint and auth
+checks, input validation, data freshness (`stats.lastUpdated` against a 26h /
+50h threshold), data sanity, upstream feed reachability, and `npm audit`.
+
+Several checks are regression guards for defects this codebase has actually
+had, and exist to stop them returning silently:
+
+| Guard | Defect it watches for |
+|-------|----------------------|
+| `?search=NIGERIA` and `?search=nigeria` must return equal counts | Postgres `contains` is case-sensitive where SQLite was not |
+| Non-zero counts whose summary contains no digit | Ingestion once generated random case numbers |
+| Every video `channelId` must be on the allowlist | The provenance guarantee of the video feature |
+| `stats.total` must equal the `/api/outbreaks` row count | Route handlers prerendered at build time, freezing the counters |
+
+The agent reports only; it does not commit, push, or modify files.
+
 ## Known Limitations
 
 - Several upstream WHO, ECDC and ProMED RSS endpoints now return 404; the cron uses the
@@ -245,8 +316,9 @@ Both auto-detect Next.js. Provision PostgreSQL, set `DATABASE_URL`, and deploy t
   description. Much of what these channels publish is general health content that names
   no specific disease, so most videos carry no topic label and therefore no outbreak
   link. That is accurate output, not a gap in coverage.
-- `components/Map.tsx` (Leaflet) is not rendered anywhere — the homepage uses the 3D
-  globe. It remains in the tree along with its dependencies.
+- `/api/outbreaks/:id/sources` is served by a model nothing populates — the
+  `OutbreakSource` table is empty. Either wire the scrapers to write to it or remove
+  both the route and the model.
 - `next@14.2.21` carries a published security advisory; `axios` and `undici` have open
   advisories and are used by the scrapers. Patching means a breaking upgrade to Next 15.
 - ESLint is not configured — `npm run lint` drops into Next's interactive setup.
