@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 export function Footer() {
   return (
     <footer
@@ -97,12 +99,30 @@ export function Footer() {
           }}>
             © {new Date().getFullYear()} Epi-Watch · For informational purposes only
           </p>
-          <p style={{
-            fontSize: 11, color: 'rgba(71,85,105,0.8)',
-            fontFamily: 'var(--font-mono), Space Mono, monospace',
-          }}>
-            Data sourced from public health authorities
-          </p>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { href: '/faq', label: 'FAQ' },
+              { href: '/privacy', label: 'Privacy' },
+              { href: '/cookies', label: 'Cookies' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  fontSize: 11, color: 'rgba(148,163,184,0.9)', textDecoration: 'none',
+                  fontFamily: 'var(--font-mono), Space Mono, monospace',
+                }}
+              >
+                {label}
+              </Link>
+            ))}
+            <span style={{
+              fontSize: 11, color: 'rgba(71,85,105,0.8)',
+              fontFamily: 'var(--font-mono), Space Mono, monospace',
+            }}>
+              Data sourced from public health authorities
+            </span>
+          </div>
         </div>
       </div>
     </footer>

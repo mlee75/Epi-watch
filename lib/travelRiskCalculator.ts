@@ -371,6 +371,15 @@ function generateWarnings(
 // ─── Country static data for healthcare / infrastructure / endemic risks ────
 // Source approximations from WHO, World Bank, CDC. Updated periodically.
 
+/**
+ * Static baseline estimates maintained by Epi-watch.
+ *
+ * These are NOT figures published by CDC or WHO. `cdcTravelLevel` and
+ * `whoRiskLevel` are internal 1-4 / LOW-VERY_HIGH bands named after those
+ * scales, not readings from them, and the UI must not label them as CDC or WHO
+ * output — doing so attributed numbers to authorities that never issued them.
+ * They are undated and hand-maintained; treat them as orientation only.
+ */
 interface CountryStaticData {
   hospitalBedsPerCapita: number;
   doctorsPerCapita: number;

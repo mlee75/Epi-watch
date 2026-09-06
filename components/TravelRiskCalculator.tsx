@@ -187,7 +187,7 @@ export default function TravelRiskCalculator() {
             Travel Risk Assessment
           </h2>
           <p className="text-sm text-white/50 mt-3 max-w-lg mx-auto">
-            Personalized health risk analysis based on live outbreak data, healthcare infrastructure, and your traveler profile
+            Orientation tool combining live outbreak data with static country estimates and your traveler profile — not medical advice
           </p>
         </div>
 
@@ -442,30 +442,87 @@ export default function TravelRiskCalculator() {
                 ))}
               </div>
 
-              {/* Country indicators */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-white/10">
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Healthcare Quality</p>
-                  <p className="text-lg font-bold text-white">{riskAssessment.countryData.healthcareQualityIndex}<span className="text-xs text-white/30">/100</span></p>
+              {/* Country indicators.
+
+                  These come from a static table in lib/travelRiskCalculator.ts —
+                  they are Epi-watch's own baseline estimates, not figures issued
+                  by CDC or WHO. The tile labelled "CDC Level" previously implied
+                  the latter, which attributed a number to an authority that never
+                  published it. Labels now say "estimate" and the block carries a
+                  provenance note, so a reader can tell these apart from the live
+                  outbreak counts driving the rest of the page. */}
+              <div className="mt-5 pt-5 border-t border-white/10">
+                <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+                  <h4 className="text-[10px] text-white/40 uppercase tracking-wider font-bold">
+                    Country baseline — Epi-watch estimates
+                  </h4>
+                  <span className="text-[10px] text-white/30">
+                    Static reference values, not live and not issued by CDC or WHO
+                  </span>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CDC Level</p>
-                  <p className="text-lg font-bold text-white">Level {riskAssessment.countryData.cdcTravelLevel}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Healthcare (est.)</p>
+                    <p className="text-lg font-bold text-white">{riskAssessment.countryData.healthcareQualityIndex}<span className="text-xs text-white/30">/100</span></p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Advisory tier (est.)</p>
+                    <p className="text-lg font-bold text-white">Tier {riskAssessment.countryData.cdcTravelLevel}<span className="text-xs text-white/30">/4</span></p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Malaria (est.)</p>
+                    <p className={`text-lg font-bold ${
+                      riskAssessment.countryData.malariaRisk === 'HIGH' ? 'text-red-400' :
+                      riskAssessment.countryData.malariaRisk === 'MODERATE' ? 'text-yellow-400' : 'text-green-400'
+                    }`}>{riskAssessment.countryData.malariaRisk}</p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Dengue (est.)</p>
+                    <p className={`text-lg font-bold ${
+                      riskAssessment.countryData.dengueRisk === 'HIGH' ? 'text-red-400' :
+                      riskAssessment.countryData.dengueRisk === 'MODERATE' ? 'text-yellow-400' : 'text-green-400'
+                    }`}>{riskAssessment.countryData.dengueRisk}</p>
+                  </div>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Malaria Risk</p>
-                  <p className={`text-lg font-bold ${
-                    riskAssessment.countryData.malariaRisk === 'HIGH' ? 'text-red-400' :
-                    riskAssessment.countryData.malariaRisk === 'MODERATE' ? 'text-yellow-400' : 'text-green-400'
-                  }`}>{riskAssessment.countryData.malariaRisk}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Dengue Risk</p>
-                  <p className={`text-lg font-bold ${
-                    riskAssessment.countryData.dengueRisk === 'HIGH' ? 'text-red-400' :
-                    riskAssessment.countryData.dengueRisk === 'MODERATE' ? 'text-yellow-400' : 'text-green-400'
-                  }`}>{riskAssessment.countryData.dengueRisk}</p>
-                </div>
+              </div>
+
+              {/* Not-medical-advice notice. The tool outputs required vaccinations
+                  and prophylaxis suggestions, which a traveller could act on; it
+                  previously carried no disclaimer at all. */}
+              <div
+                className="mt-5 rounded-lg p-4"
+                style={{ background: 'rgba(255,204,59,0.06)', border: '1px solid rgba(255,204,59,0.25)' }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#ffcc3b' }}>
+                  Not medical advice
+                </p>
+                <p className="text-xs leading-relaxed text-white/60">
+                  This score is a rough orientation tool. Outbreak counts are live, but the
+                  country baseline above is a static estimate maintained by Epi-watch and may
+                  be out of date. Vaccination and prophylaxis suggestions are generic and take
+                  no account of your medical history. Before travelling, consult a clinician or
+                  a travel health clinic, and check the current{' '}
+                  <a
+                    href="https://wwwnc.cdc.gov/travel/notices"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                    style={{ color: '#4a9eff' }}
+                  >
+                    CDC travel health notices
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href="https://www.who.int/emergencies/disease-outbreak-news"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                    style={{ color: '#4a9eff' }}
+                  >
+                    WHO disease outbreak news
+                  </a>{' '}
+                  for your destination.
+                </p>
               </div>
             </div>
 

@@ -175,3 +175,34 @@ body > * { position: relative; z-index: 1; }
 .card-high:hover     { box-shadow: 0 0 32px rgba(234,88,12,0.18), 0 8px 32px rgba(0,0,0,0.5); transform: translateY(-1px); }
 .card-medium:hover   { box-shadow: 0 0 32px rgba(202,138,4,0.15), 0 8px 32px rgba(0,0,0,0.5); transform: translateY(-1px); }
 .card-low:hover      { box-shadow: 0 0 32px rgba(34,197,94,0.15), 0 8px 32px rgba(0,0,0,0.5); transform: translateY(-1px); }
+
+/* ── Legal / FAQ prose ──────────────────────────────────────────────────────
+   Long-form policy text needs readable defaults; the rest of the app is
+   dashboard chrome with per-element styling and has none. */
+.legal { color: #a0a8c8; line-height: 1.75; font-size: 14.5px; }
+.legal h2 {
+  color: #e8ecf8; font-size: 20px; font-weight: 700;
+  margin: 34px 0 12px; padding-top: 18px; border-top: 1px solid #1e2749;
+}
+.legal h3 { color: #e8ecf8; font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
+.legal p { margin-bottom: 14px; }
+.legal ul { margin: 0 0 16px 18px; list-style: disc; }
+.legal li { margin-bottom: 7px; }
+.legal a { color: #4a9eff; text-decoration: underline; }
+.legal strong { color: #e8ecf8; }
+.legal code {
+  background: #0a0e20; border: 1px solid #1e2749; border-radius: 4px;
+  padding: 1px 5px; font-size: 12.5px; font-family: var(--font-mono), monospace;
+}
+.legal table {
+  width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 13px;
+  display: block; overflow-x: auto;
+}
+.legal th, .legal td {
+  border: 1px solid #1e2749; padding: 8px 10px; text-align: left; vertical-align: top;
+}
+.legal th { color: #e8ecf8; background: #0d1129; font-weight: 600; }
+.legal summary { list-style: none; }
+.legal summary::-webkit-details-marker { display: none; }
+.legal summary::before { content: '+ '; color: #ff4d4d; font-weight: 700; }
+.legal details[open] summary::before { content: '− '; }

@@ -104,6 +104,93 @@ model OutbreakSource {
   @@index([publishedAt(sort: Desc)])
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Authentication (Auth.js / NextAuth)
+//
+// Passwords are never stored in plaintext: `passwordHash` holds a bcrypt hash
+// and is the ONLY password-shaped column. It is deliberately optional — a user
+// who signs in with Google has no password at all, so there is nothing to leak
+// for those accounts.
+//
+// Everything here is the standard Auth.js Prisma adapter shape apart from
+// `passwordHash`, which the adapter does not define because the credentials
+// provider is not part of the adapter contract.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  /// bcrypt hash. Null for OAuth-only accounts. Never expose over any API.
+  passwordHash  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  watchlist     WatchlistItem[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// A disease or country a signed-in user follows. The only user-generated data
+/// the app stores, kept deliberately minimal.
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String   // "disease" | "country"
+  value     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, value])
+  @@index([userId])
+}
+
 /// Video intelligence sourced exclusively from allowlisted public health
 /// authority channels (see lib/videoSources.ts). Every row is, by construction,
 /// published by a named authority — there is no path for arbitrary internet
