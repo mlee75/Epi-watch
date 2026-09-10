@@ -186,11 +186,9 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         q: 'How do I delete my account?',
         a: (
           <>
-            Open an issue at{' '}
-            <a href="https://github.com/mlee75/Epi-watch/issues" target="_blank" rel="noopener noreferrer">
-              github.com/mlee75/Epi-watch
-            </a>{' '}
-            from the email address on the account, and we will delete it and its watchlist.
+            Sign in and go to your <Link href="/account">account page</Link>. Deletion is
+            immediate and permanent — it removes your record, sign-in methods and
+            watchlist, and we keep no backup copy.
           </>
         ),
       },

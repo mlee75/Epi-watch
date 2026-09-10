@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { AuthNav } from '@/components/AuthNav';
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -134,6 +135,7 @@ export function Header() {
                 {item.label}
               </a>
             ))}
+            <AuthNav />
           </nav>
         </div>
       </div>

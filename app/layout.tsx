@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import { Space_Grotesk, Space_Mono } from 'next/font/google';
 import './globals.css';
 import { AIChat } from '@/components/AIChat';
+import { Providers } from '@/components/Providers';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -48,8 +49,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
       <body className="text-white antialiased">
-        {children}
-        <AIChat />
+        <Providers>
+          {children}
+          <AIChat />
+        </Providers>
       </body>
     </html>
   );

@@ -131,7 +131,10 @@ export default function PrivacyPage() {
             processing and to complain to your data protection authority.
           </p>
           <p>
-            To exercise any of these, contact us at the address below. We will need to
+            You can delete your account yourself at any time from your{' '}
+            <Link href="/account">account page</Link> — it removes your record, sign-in
+            methods and watchlist immediately, with no backup copy retained. For a copy of
+            your data or a correction, contact us at the address below; we will need to
             confirm you control the email address on the account.
           </p>
 

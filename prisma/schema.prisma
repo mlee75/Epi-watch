@@ -176,6 +176,23 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+/// Rate-limit counters, shared across serverless instances.
+///
+/// The first implementation kept counts in process memory, which throttles a
+/// single warm lambda rather than the fleet — an attacker hitting a cold or
+/// different instance simply got a fresh budget. Storing the window in the
+/// database makes the limit apply globally.
+///
+/// `key` is a coarse bucket (endpoint + client IP), never a password or email,
+/// so this table holds no credential material.
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+
+  @@index([resetAt])
+}
+
 /// A disease or country a signed-in user follows. The only user-generated data
 /// the app stores, kept deliberately minimal.
 model WatchlistItem {

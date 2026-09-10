@@ -7,6 +7,7 @@ import {
   normalizeEmail,
   validatePassword,
 } from '@/lib/password';
+import { checkRateLimit, clientKey } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,34 +24,14 @@ const GENERIC_OK = {
   message: 'If that email is available, the account has been created. You can now sign in.',
 };
 
-// Best-effort in-process rate limit. Serverless instances do not share memory,
-// so this throttles a single warm instance rather than the fleet — it raises
-// the cost of scripted abuse but is not a substitute for an edge rate limiter.
-const attempts = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 10;
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const entry = attempts.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    attempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > MAX_ATTEMPTS;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-
-    if (rateLimited(ip)) {
+    // Shared across instances, so rotating cold starts does not reset the budget.
+    const limit = await checkRateLimit(clientKey(request, 'register'), 10, 15 * 60 * 1000);
+    if (!limit.allowed) {
       return NextResponse.json(
         { ok: false, error: 'Too many attempts. Try again later.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
       );
     }
 
