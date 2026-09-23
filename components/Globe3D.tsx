@@ -124,6 +124,9 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
   // Pinned > sticky > hovered for tooltip display
   const activeCountry = pinnedCountry || stickyCountry || hoveredCountry;
   const hoveredName = activeCountry?.properties?.ADMIN ?? '';
+  // ADM0_A3 rather than ISO_A3: Natural Earth sets ISO_A3 to -99 for France,
+  // Norway and a few others.
+  const hoveredIso3: string = activeCountry?.properties?.ADM0_A3 ?? activeCountry?.properties?.ISO_A3 ?? '';
   const hoveredThreat = activeCountry ? getCountryThreat(activeCountry) : null;
 
   const hoveredOutbreaks = outbreaks
@@ -232,6 +235,7 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
         >
           <CountryTooltip
             countryName={hoveredName}
+            iso3={hoveredIso3}
             threatLevel={hoveredThreat}
             outbreaks={hoveredOutbreaks}
             onClose={() => {

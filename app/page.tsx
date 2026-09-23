@@ -8,6 +8,9 @@ import { SeverityBadge } from '@/components/SeverityBadge';
 import { RegionBars, type RegionRow } from '@/components/dashboard/RegionBars';
 import TravelRiskCalculator from '@/components/TravelRiskCalculator';
 import prisma from '@/lib/db';
+import { fetchAlerts } from '@/lib/live/alerts';
+import { fetchSari } from '@/lib/live/hospital';
+import { withTimeout } from '@/lib/feedText';
 import type { Outbreak, OutbreakStats } from '@/lib/types';
 import { SEVERITY_ORDER, SEVERITY_RULE, normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
 import { fmtCount, fmtDate, fmtDateShort, fmtNumber, regionLabel } from '@/lib/format';
@@ -146,7 +149,19 @@ function buildRegionRows(outbreaks: Outbreak[]): RegionRow[] {
 }
 
 export default async function HomePage() {
-  const { outbreaks, stats } = await getInitialData();
+  // The live panels are best effort: a slow or failing upstream must never
+  // hold up or break the overview, so each is time-boxed and may be null.
+  const [{ outbreaks, stats }, alertsData, sari] = await Promise.all([
+    getInitialData(),
+    withTimeout(fetchAlerts({ translate: false }), 25_000).catch(() => null),
+    withTimeout(fetchSari(), 25_000).catch(() => null),
+  ]);
+  const latestAlerts = (alertsData?.alerts ?? []).filter((a) => a.tier !== 'media').slice(0, 7);
+  const sixWeeksAgo = new Date(Date.now() - 42 * 86_400_000).toISOString().slice(0, 10);
+  const risingSari = (sari?.ok ? sari.countries : [])
+    .filter((c) => c.change != null && c.change >= 25 && c.latest.week >= sixWeeksAgo)
+    .sort((a, b) => b.change! - a.change!)
+    .slice(0, 7);
 
   const curated = outbreaks.filter((o) => o.verified).length;
   const automated = outbreaks.length - curated;
@@ -315,6 +330,71 @@ export default async function HomePage() {
           </section>
         </div>
 
+        <div className="home-grid-2" style={{ marginTop: 20 }}>
+          <section className="panel" aria-labelledby="alerts-title">
+            <div className="panel-header">
+              <h2 id="alerts-title" className="panel-title">Latest official alerts</h2>
+              <Link href="/alerts" className="link" style={{ fontSize: 12.5 }}>All alerts</Link>
+            </div>
+            {latestAlerts.length === 0 ? (
+              <p className="panel-body muted">Alert feeds could not be reached just now.</p>
+            ) : (
+              <ol className="news-list">
+                {latestAlerts.map((a) => (
+                  <li key={a.id}>
+                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="news-title"
+                      lang={a.language !== 'en' ? a.language : undefined}>
+                      {a.title}
+                    </a>
+                    <div className="news-meta">
+                      <span>{a.publisher}</span>
+                      {a.country && <span>{a.country}</span>}
+                      {a.publishedAt && <span>{fmtDateShort(a.publishedAt)}</span>}
+                      {a.language !== 'en' && <span className="tag">{a.language.toUpperCase()}</span>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="panel" aria-labelledby="sari-title">
+            <div className="panel-header">
+              <h2 id="sari-title" className="panel-title">Rising hospital SARI admissions</h2>
+              <Link href="/hospitals" className="link" style={{ fontSize: 12.5 }}>Hospital data</Link>
+            </div>
+            {!sari?.ok ? (
+              <p className="panel-body muted">WHO FluID could not be reached just now.</p>
+            ) : risingSari.length === 0 ? (
+              <p className="panel-body muted">No reporting country is up 25% or more on its prior four weeks.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="dt">
+                  <thead>
+                    <tr><th>Country</th><th>Settled week</th><th className="num">SARI cases</th><th className="num">Prior 4-wk mean</th><th className="num">Change</th></tr>
+                  </thead>
+                  <tbody>
+                    {risingSari.map((c) => (
+                      <tr key={c.iso3}>
+                        <td>{c.country}</td>
+                        <td className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(c.reference!.week)}</td>
+                        <td className="num">{fmtNumber(c.reference!.cases ?? 0)}</td>
+                        <td className="num muted">{fmtNumber(Math.round(c.priorMean ?? 0))}</td>
+                        <td className="num chg-up">+{Math.round(c.change!)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="panel-foot">
+              Severe acute respiratory infection admissions at sentinel hospitals: the newest week at least three
+              weeks old (newer weeks are still being reported) against the mean of the four before it. Only
+              countries with a prior mean of 10 or more and a report in the last six weeks.
+            </p>
+          </section>
+        </div>
+
         <TravelRiskCalculator />
 
         <section className="panel" style={{ marginTop: 20 }} aria-labelledby="method-title">
@@ -326,9 +406,10 @@ export default async function HomePage() {
             <div>
               <h3>Sources</h3>
               <p>
-                A curated set of records compiled from WHO, CDC, PAHO, UKHSA and UNICEF
-                reporting, and a daily automated ingest at 06:00 UTC that reads the CDC
-                US outbreaks feed, Outbreak News Today and a Google News outbreak query.
+                Records: a curated set compiled from WHO, CDC, PAHO, UKHSA and UNICEF
+                reporting, plus a daily automated ingest at 06:00 UTC. Alerts and hospital
+                admissions are read live from WHO, ECDC, CDC, UKHSA and national health
+                authorities, and refreshed every 30 to 60 minutes.
               </p>
             </div>
             <div>

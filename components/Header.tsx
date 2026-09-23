@@ -8,6 +8,8 @@ import { AuthNav } from '@/components/AuthNav';
 const NAV = [
   { label: 'Overview', href: '/' },
   { label: 'Outbreaks', href: '/outbreaks' },
+  { label: 'Alerts', href: '/alerts' },
+  { label: 'Hospitals', href: '/hospitals' },
   { label: 'News', href: '/news' },
   { label: 'Video', href: '/videos' },
   { label: 'Methodology', href: '/faq' },

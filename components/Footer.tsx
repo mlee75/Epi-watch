@@ -2,8 +2,9 @@ import Link from 'next/link';
 
 /**
  * The previous footer claimed "Updates every hour via automated scrapers" —
- * ingestion runs once a day — and "Open source · MIT License", although the
- * repository carries no licence file. Both are corrected here.
+ * record ingestion runs once a day — and "Open source · MIT License", although
+ * the repository carries no licence file. Each cadence below is stated per
+ * data type instead.
  */
 
 const REFERENCES: [string, string][] = [
@@ -11,10 +12,15 @@ const REFERENCES: [string, string][] = [
   ['CDC Travel Health Notices', 'https://wwwnc.cdc.gov/travel/notices'],
   ['ECDC Communicable Disease Threats', 'https://www.ecdc.europa.eu/en/publications-and-data/monitoring/weekly-threats-reports'],
   ['PAHO Epidemiological Alerts', 'https://www.paho.org/en/epidemiological-alerts-and-updates'],
+  ['WHO FluID (SARI)', 'https://www.who.int/teams/global-influenza-programme/surveillance-and-monitoring/fluid'],
+  ['CDC NHSN hospital data', 'https://data.cdc.gov/d/ua7e-t2fy'],
+  ['UKHSA data dashboard', 'https://ukhsa-dashboard.data.gov.uk/'],
 ];
 
 const SITE: [string, string][] = [
   ['Outbreaks', '/outbreaks'],
+  ['Alerts', '/alerts'],
+  ['Hospitals', '/hospitals'],
   ['News', '/news'],
   ['Video', '/videos'],
   ['Methodology & FAQ', '/faq'],
@@ -67,7 +73,9 @@ export function Footer() {
           <div>
             <div className="site-footer-h">Data</div>
             <ul className="site-footer-facts">
-              <li>Automated ingest daily at 06:00 UTC</li>
+              <li>Outbreak records ingested daily at 06:00 UTC</li>
+              <li>Alerts refreshed every 30 minutes</li>
+              <li>Hospital data refreshed hourly</li>
               <li>Severity from reported cases and deaths</li>
               <li>
                 <a href="https://github.com/mlee75/Epi-watch" target="_blank" rel="noopener noreferrer" className="link">

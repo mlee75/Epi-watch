@@ -100,6 +100,66 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
     ],
   },
   {
+    heading: 'Alerts and hospital data',
+    items: [
+      {
+        q: 'Where do the official alerts come from?',
+        a: (
+          <>
+            International agencies&rsquo; own feeds and APIs: WHO Disease Outbreak News, ECDC news and weekly
+            threat reports, PAHO, WHO Africa, WHO news, CDC travel notices and UKHSA. For about 28 national
+            health authorities that publish no usable feed, Epi-watch searches Google News restricted to the
+            authority&rsquo;s own website, in its own language, and keeps an item only if its publisher is on
+            that website and its title names a disease or outbreak. The list is refreshed every 30 minutes.
+          </>
+        ),
+      },
+      {
+        q: 'Are alerts translated?',
+        a: (
+          <>
+            Titles are shown in their original language. When an Anthropic API key is configured, non-English
+            titles are also machine-translated and marked as translated; the original stays visible underneath.
+            Without a key, no translation is shown.
+          </>
+        ),
+      },
+      {
+        q: 'Where does the hospital admissions data come from, and how live is it?',
+        a: (
+          <>
+            Three public surveillance systems, read every hour: WHO FluID (severe acute respiratory infection
+            admissions at sentinel hospitals in about 90 countries, weekly), CDC NHSN (US admissions for COVID-19,
+            influenza and RSV and bed occupancy, weekly, national and by state) and the UKHSA data dashboard
+            (England). These systems publish with a lag of one to three weeks, so the newest week shown is the
+            newest week published, not today. Recent weeks can still be revised.
+          </>
+        ),
+      },
+      {
+        q: 'Can I compare SARI numbers between countries?',
+        a: (
+          <>
+            No. Each country reports from its own set of sentinel hospitals, which differ in number and size.
+            Compare a country with its own previous weeks. That is why the table shows change against the prior
+            four-week mean, and only when that mean is at least 10 cases.
+          </>
+        ),
+      },
+      {
+        q: 'Does Epi-watch track health-worker movements?',
+        a: (
+          <>
+            It tracks reported events: deployments of response teams, health-worker infections, strikes and
+            staffing shortages, found by keyword in agency notices and in a news search, under &ldquo;Response
+            and workforce&rdquo; on the alerts page. It does not track where individual health workers are. No
+            public source publishes that, and following named individuals would raise serious privacy issues.
+          </>
+        ),
+      },
+    ],
+  },
+  {
     heading: 'Video and live TV',
     items: [
       {
