@@ -127,6 +127,17 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         ),
       },
       {
+        q: 'Is the day and night on the globe real?',
+        a: (
+          <>
+            Yes. The sun&rsquo;s position is calculated for the current time and the globe is re-lit every five
+            minutes: daylight where the sun is up, a twilight band where it is setting or rising, and city lights where
+            it is night. The imagery is NASA&rsquo;s Blue Marble (day) and Black Marble (night lights, from the VIIRS
+            satellite instrument); the lights are a composite, not a live picture of tonight.
+          </>
+        ),
+      },
+      {
         q: 'Are any aircraft deliberately left out?',
         a: (
           <>

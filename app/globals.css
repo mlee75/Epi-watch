@@ -807,3 +807,11 @@ html.js .panel:not([data-in]) .rb-bar { transform: scaleX(0); }
 }
 .site-nav-link[aria-current='page']::after { transform: scaleX(1); }
 .site-nav-link[aria-current='page'] { border-bottom-color: transparent; }
+
+/* Globe finish: a soft vignette (Raylight's ~0.5 vignette, graded so it
+   never announces itself) and the sun note in the layer panel. */
+.lm-live .lm-canvas::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.42) 100%);
+}
+.lm-sun { font-size: 11px; line-height: 1.5; color: var(--ink-3); margin: 0; }

@@ -12,13 +12,14 @@ import { normalizeSeverity, severityRank, SEVERITY_LABEL, SEVERITY_ORDER, SEVERI
 import { CountryTooltip } from '@/components/CountryTooltip';
 import { OutbreakDetailPanel } from '@/components/OutbreakDetailPanel';
 import { ENTER_EVENT } from '@/lib/events';
+import { MERCATOR_WORLD, NIGHT_URL, createDayNightComposer, subsolarPoint } from './dayNight';
 import {
   BASEMAP_STYLE, COLOR, COUNTRIES_URL, GDACS_COLOR, SATELLITE_TILES, SEVERITY_FILL, buildCountryIndex, countryCode,
 } from './mapStyle';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type LayerKey = 'hems' | 'sar' | 'acEmergency' | 'disasters' | 'medicalCalls' | 'collisions' | 'rescueFire' | 'cameras' | 'hospitals' | 'outbreaks';
+type LayerKey = 'hems' | 'sar' | 'acEmergency' | 'disasters' | 'medicalCalls' | 'collisions' | 'rescueFire' | 'cameras' | 'hospitals' | 'outbreaks' | 'daynight';
 
 type Selection =
   | { kind: 'aircraft'; hex: string }
@@ -52,6 +53,7 @@ const LAYER_DEFS: { key: LayerKey; label: string; color: string; shape: 'arrow' 
   { key: 'medicalCalls', label: 'Medical calls (Seattle 911)', color: COLOR.medicalCall, shape: 'dot', group: 'Emergencies' },
   { key: 'collisions', label: 'Traffic collisions (Seattle 911)', color: COLOR.collision, shape: 'dot', group: 'Emergencies' },
   { key: 'rescueFire', label: 'Rescues and fires (Seattle 911)', color: COLOR.rescueFire, shape: 'dot', group: 'Emergencies' },
+  { key: 'daynight', label: 'Day and night (live sun)', color: '#e8c547', shape: 'dot', group: 'Context' },
   { key: 'outbreaks', label: 'Outbreak records by country', color: SEVERITY_FILL.CRITICAL, shape: 'fill', group: 'Context' },
   { key: 'hospitals', label: 'Hospitals (zoom in)', color: COLOR.hospital, shape: 'label', group: 'Context' },
   { key: 'cameras', label: 'Traffic cameras (London, Seattle)', color: COLOR.camera, shape: 'square', group: 'Context' },
@@ -59,7 +61,7 @@ const LAYER_DEFS: { key: LayerKey; label: string; color: string; shape: 'arrow' 
 
 const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   hems: true, sar: true, acEmergency: true, disasters: true, medicalCalls: true, collisions: true, rescueFire: true,
-  cameras: false, hospitals: true, outbreaks: true,
+  cameras: false, hospitals: true, outbreaks: true, daynight: true,
 };
 
 const EMERGENCY_LAYER: Record<Emergency['kind'], LayerKey> = {
@@ -238,11 +240,13 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         attributionControl: {
           compact: true,
           customAttribution: live
-            ? ['Aircraft: <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a> (ODbL)', 'Disasters: GDACS', 'Imagery: Esri, Maxar, Earthstar Geographics']
+            ? ['Earth: NASA Blue Marble, Black Marble', 'Aircraft: <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a> (ODbL)', 'Disasters: GDACS', 'Imagery: Esri, Maxar, Earthstar Geographics']
             : [],
         },
       });
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+      // Compact attribution starts expanded; collapse it to the (i) button.
+      map.once('load', () => containerRef.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
       // The layer panel starts collapsed where it would cover most of the map.
       if (containerRef.current.clientWidth < 760) setFilterOpen(false);
       map.on('style.load', () => {
@@ -254,7 +258,35 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
             map!.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']]);
           }
         }
+        // A cleaner globe: no country or state borders at any zoom, and
+        // labels only once they help (countries from z2.5, cities from z4).
+        for (const l of map!.getStyle().layers) {
+          if (l.id.startsWith('boundary')) map!.setLayoutProperty(l.id, 'visibility', 'none');
+          else if (l.id.startsWith('place_country')) map!.setLayerZoomRange(l.id, 2.5, 24);
+          else if (l.id === 'place_city_large') map!.setLayerZoomRange(l.id, 4, 24);
+          else if (l.id === 'place_city' || l.id === 'place_state') map!.setLayerZoomRange(l.id, 5, 24);
+          else if (l.id === 'water_name') map!.setLayerZoomRange(l.id, 3, 24);
+        }
         const firstSymbol = map!.getStyle().layers.find((l) => l.type === 'symbol')?.id;
+
+        if (live) {
+          // Earth from space: daylight and city lights from the real sun
+          // position (see dayNight.ts). Starts as the night image and is
+          // replaced by the composite as soon as it is rendered. It fades out
+          // by zoom 6.5, where streets take over.
+          map!.addSource('earth', { type: 'image', url: NIGHT_URL, coordinates: MERCATOR_WORLD });
+          map!.addLayer({
+            id: 'earth', type: 'raster', source: 'earth',
+            paint: {
+              'raster-opacity': ['interpolate', ['linear'], ['zoom'], 0, 1, 4.5, 1, 6.5, 0],
+              'raster-fade-duration': 0,
+              'raster-resampling': 'linear',
+            },
+          }, map!.getLayer('waterway') ? 'waterway' : firstSymbol);
+          // Atmosphere: the thin glow at the limb of the globe, as seen from
+          // orbit; it fades as the camera comes down to street level.
+          map!.setSky({ 'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0] });
+        }
 
         map!.addSource('satellite', { type: 'raster', tiles: [SATELLITE_TILES], tileSize: 256, maxzoom: 19 });
         map!.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } }, map!.getLayer('waterway') ? 'waterway' : firstSymbol);
@@ -263,18 +295,26 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         map!.addLayer({
           id: 'countries-fill', type: 'fill', source: 'countries',
           paint: {
+            // On the live globe, low-severity countries are left unshaded: grey
+            // patches over the Earth imagery were noise, not signal.
             'fill-color': ['match', ['get', 'sev'],
-              'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM, 'LOW', SEVERITY_FILL.LOW, 'rgba(0,0,0,0)'],
+              'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM,
+              'LOW', mode === 'disease' ? SEVERITY_FILL.LOW : 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'],
             // Shading fades out as you zoom in, so streets stay readable.
-            'fill-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.8, 4, 0.5, 6.5, 0.12, 8, 0],
+            // Translucent, so the Earth underneath (day, night, city lights)
+            // still reads through the outbreak shading.
+            'fill-opacity': mode === 'disease'
+              ? ['interpolate', ['linear'], ['zoom'], 1, 0.8, 4, 0.5, 6.5, 0.12, 8, 0]
+              : ['interpolate', ['linear'], ['zoom'], 1, 0.3, 4, 0.22, 6.5, 0.06, 8, 0],
           },
         }, firstSymbol);
         map!.addLayer({
           id: 'countries-line', type: 'line', source: 'countries',
           paint: {
-            'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#f5f4f0', '#383835'],
-            'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2, 0.6],
-            'line-opacity': ['interpolate', ['linear'], ['zoom'], 5, 1, 8, 0],
+            // No borders; only the selected country is outlined.
+            'line-color': '#f5f4f0',
+            'line-width': 1.5,
+            'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 0.9, 0],
           },
         }, firstSymbol);
 
@@ -409,6 +449,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     vis('hospital-label', layers.hospitals);
     vis('cameras', layers.cameras);
     vis('satellite', basemap === 'satellite');
+    vis('earth', layers.daynight);
     vis('building', basemap === 'map');
   }, [ready, layers, basemap, mode]);
 
@@ -479,6 +520,31 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     map.setFeatureState({ source: 'countries', id: selectedIso }, { selected: true });
     return () => { if (map.getSource('countries')) map.setFeatureState({ source: 'countries', id: selectedIso }, { selected: false }); };
   }, [ready, selectedIso]);
+
+  // ── Day and night texture, recomposed every 5 minutes ──
+  const [sunAt, setSunAt] = useState<Date | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !live) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    (async () => {
+      try {
+        const composer = await createDayNightComposer();
+        const update = async () => {
+          const at = new Date();
+          const url = await composer.render(at);
+          if (cancelled) return;
+          (map.getSource('earth') as { updateImage?: (o: { url: string; coordinates: typeof MERCATOR_WORLD }) => void } | undefined)
+            ?.updateImage?.({ url, coordinates: MERCATOR_WORLD });
+          setSunAt(at);
+        };
+        await update();
+        timer = setInterval(() => { if (document.visibilityState === 'visible') update(); }, 5 * 60_000);
+      } catch { /* the night image stays up */ }
+    })();
+    return () => { cancelled = true; if (timer) clearInterval(timer); };
+  }, [ready, live]);
 
   // ── Idle rotation ──
   // Spins the globe about 3° a second while zoomed out. Any interaction or
@@ -590,6 +656,17 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
                     ))}
                   </fieldset>
                 ))}
+                {layers.daynight && sunAt && (() => {
+                  const sun = subsolarPoint(sunAt);
+                  const ns = sun.lat >= 0 ? 'N' : 'S';
+                  const ew = sun.lon >= 0 ? 'E' : 'W';
+                  return (
+                    <p className="lm-sun">
+                      Sunlight as of {sunAt.toISOString().slice(11, 16)} UTC; sun overhead at{' '}
+                      {Math.abs(sun.lat).toFixed(1)}°{ns}, {Math.abs(sun.lon).toFixed(1)}°{ew}.
+                    </p>
+                  );
+                })()}
                 <div className="lm-basemap" role="group" aria-label="Base map">
                   {(['map', 'satellite'] as const).map((b) => (
                     <button key={b} type="button" className="chip" aria-pressed={basemap === b} onClick={() => setBasemap(b)}>
@@ -600,12 +677,13 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
                 {layers.outbreaks && (
                   <details className="lm-sev">
                     <summary>Country shading</summary>
-                    {SEVERITY_ORDER.map((lvl) => (
+                    {SEVERITY_ORDER.filter((lvl) => lvl !== 'LOW').map((lvl) => (
                       <div key={lvl} className="lm-sev-row">
                         <span className="sev" style={{ ['--sev-color' as string]: SEVERITY_FILL[lvl] }}>{SEVERITY_LABEL[lvl]}</span>
                         <span className="muted">{SEVERITY_RULE[lvl]}</span>
                       </div>
                     ))}
+                    <p className="lm-sun" style={{ marginTop: 6 }}>Countries with only low-severity records are not shaded.</p>
                   </details>
                 )}
               </div>
