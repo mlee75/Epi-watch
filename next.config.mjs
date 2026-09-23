@@ -1,10 +1,4 @@
 import { withSentryConfig } from '@sentry/nextjs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -13,8 +7,8 @@ const nextConfig = {
   images: { remotePatterns: [] },
 
   // Only headers with no breakage risk for this app are set here. A full CSP
-  // is deliberately not included: the globe pulls textures from unpkg and
-  // GeoJSON from github.io, and the video page frames youtube-nocookie, so a
+  // is deliberately not included: the map loads tiles from OpenFreeMap and Esri,
+  // camera images from TfL and Seattle, and the video page frames youtube-nocookie, so a
   // policy needs its own verification pass rather than being asserted blind.
   async headers() {
     return [
@@ -36,25 +30,8 @@ const nextConfig = {
     ];
   },
 
-  webpack: (config, { webpack }) => {
+  webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
-
-    // Pin 'three' to a single resolved path so that three/examples/jsm/* files
-    // which bare-import 'three' always resolve to the same module copy.
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      three: path.resolve(__dirname, 'node_modules/three'),
-    };
-
-    const stubPath = path.resolve(__dirname, 'lib/stubs/three-webgpu.js');
-
-    // Use NormalModuleReplacementPlugin to intercept three/webgpu and three/tsl
-    // requests before resolution — this catches them even from nested node_modules
-    // (globe.gl/node_modules/three-render-objects, three-globe, etc.)
-    config.plugins.push(
-      new webpack.NormalModuleReplacementPlugin(/^three\/webgpu$/, stubPath),
-      new webpack.NormalModuleReplacementPlugin(/^three\/tsl$/, stubPath),
-    );
 
     return config;
   },

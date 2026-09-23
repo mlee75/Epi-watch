@@ -31,6 +31,16 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         ),
       },
       {
+        q: 'Where do the symptom descriptions come from?',
+        a: (
+          <>
+            Each disease page summarises the WHO fact sheet (or the CDC page where WHO has none), linked beside it:
+            cause, main symptoms, how it spreads and the incubation period. It is general information, not medical
+            advice.
+          </>
+        ),
+      },
+      {
         q: 'What is the difference between Curated and Automated records?',
         a: (
           <>
@@ -94,6 +104,66 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
             Health agency (for example WHO, CDC, a ministry of health), Field organisation
             (for example ProMED, MSF, ReliefWeb) and Media (everything else). A news article
             that quotes WHO is still Media.
+          </>
+        ),
+      },
+    ],
+  },
+  {
+    heading: 'Live map',
+    items: [
+      {
+        q: 'How are air ambulances found?',
+        a: (
+          <>
+            From ADS-B, the position signal aircraft broadcast, via the community network adsb.lol (refreshed every
+            30 seconds). An aircraft is shown as an air ambulance if its registered operator is an air-medical
+            service (about 1,400 aircraft, mostly in the US and Australia), if it flies under a known rescue callsign
+            (UK Helimed, German &ldquo;Christoph&rdquo;, Swiss Rega, French SAMU) or if the crew has set the
+            &ldquo;lifeguard&rdquo; medical-flight status. Search-and-rescue aircraft are identified by callsign.
+            Coverage follows volunteer receivers: dense in North America and Europe, sparse elsewhere. Between
+            reports, positions are estimated from speed and heading, and the aircraft card says so.
+          </>
+        ),
+      },
+      {
+        q: 'Are any aircraft deliberately left out?',
+        a: (
+          <>
+            Yes. Aircraft whose owners have asked not to be publicly tracked (the FAA LADD and PIA programmes) are
+            excluded, even though their signals are public.
+          </>
+        ),
+      },
+      {
+        q: 'Where do accidents and medical calls come from?',
+        a: (
+          <>
+            From the Seattle Fire Department&rsquo;s real-time 911 feed, which gives the address of every medical
+            call, collision and rescue within minutes. Very few emergency services publish dispatch data openly, so
+            street-level incidents are shown for Seattle only. Disasters (earthquakes, cyclones, floods, volcanoes,
+            wildfires) come from GDACS, run by the UN and the European Commission, and aircraft declaring an
+            emergency (squawk 7700) from adsb.fi.
+          </>
+        ),
+      },
+      {
+        q: 'Is there live video of emergency operations?',
+        a: (
+          <>
+            No public source streams emergency operations. For street-level incidents the map shows the nearest
+            public traffic cameras (Transport for London video clips, Seattle still images, refreshed every minute or
+            few minutes). They show the street near the address, which may or may not include the incident.
+          </>
+        ),
+      },
+      {
+        q: 'What do the colours for rising and falling figures mean?',
+        a: (
+          <>
+            Everywhere a figure is compared with an earlier one, a red ▲ marks an increase, a blue ▼ a decrease and a
+            grey → a change within ±5%. The arrow and the signed percentage are always shown, so the colour is never
+            the only cue; red and blue were chosen because they stay distinct with colour-blindness.
           </>
         ),
       },

@@ -10,6 +10,8 @@ import { REGION_LABEL, fmtCfr, fmtCount, fmtDate, fmtDateShort, regionLabel } fr
 interface Props {
   initialOutbreaks: Outbreak[];
   countries: string[];
+  /** Rendered inside the outbreaks explorer, which has its own page header. */
+  embedded?: boolean;
 }
 
 interface HealthArticle {
@@ -31,7 +33,7 @@ const PAGE_SIZE = 50;
  * ingested once a day, so the polling only put load on the database from every
  * open tab; it is gone, and the page states when data was last updated.
  */
-export default function LiveOutbreaksDashboard({ initialOutbreaks, countries }: Props) {
+export default function LiveOutbreaksDashboard({ initialOutbreaks, countries, embedded = false }: Props) {
   const outbreaks = initialOutbreaks;
   // Other pages link here as /outbreaks?search=<disease>.
   const params = useSearchParams();
@@ -133,15 +135,17 @@ export default function LiveOutbreaksDashboard({ initialOutbreaks, countries }: 
   );
 
   return (
-    <div className="page">
-      <header className="page-head">
-        <h1 className="page-title">Outbreak records</h1>
-        <p className="page-lede">
-          {outbreaks.length} records — {curatedCount} curated from agency reporting and{' '}
-          {outbreaks.length - curatedCount} from the daily automated ingest, which have not been
-          reviewed. {lastUpdated && <>Last updated {fmtDate(lastUpdated)}.</>}
-        </p>
-      </header>
+    <div className={embedded ? undefined : 'page'}>
+      {!embedded && (
+        <header className="page-head">
+          <h1 className="page-title">Outbreak records</h1>
+          <p className="page-lede">
+            {outbreaks.length} records — {curatedCount} curated from agency reporting and{' '}
+            {outbreaks.length - curatedCount} from the daily automated ingest, which have not been
+            reviewed. {lastUpdated && <>Last updated {fmtDate(lastUpdated)}.</>}
+          </p>
+        </header>
+      )}
 
       <div className="ob-toolbar">
         <input

@@ -3,13 +3,13 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import prisma from '@/lib/db';
 import type { Outbreak } from '@/lib/types';
-import LiveOutbreaksDashboard from './LiveOutbreaksDashboard';
+import OutbreaksExplorer from './OutbreaksExplorer';
 
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'Outbreak records | Epi-watch',
-  description: 'All outbreak records, filterable by severity, WHO region, country and source.',
+  title: 'Outbreaks | Epi-watch',
+  description: 'Outbreaks grouped by disease, with symptoms, transmission and a map of the countries where each is recorded.',
 };
 
 async function getOutbreaks(): Promise<{ outbreaks: Outbreak[]; countries: string[] }> {
@@ -52,7 +52,7 @@ export default async function OutbreaksPage() {
       <Header />
       <main>
         <Suspense>
-          <LiveOutbreaksDashboard initialOutbreaks={outbreaks} countries={countries} />
+          <OutbreaksExplorer outbreaks={outbreaks} countries={countries} />
         </Suspense>
       </main>
       <Footer />

@@ -77,7 +77,7 @@ export default function CookiesPage() {
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
               Google&rsquo;s privacy policy
             </a>
-            . The same applies to the live TV panel on the globe.
+            . The same applies to the live TV panel on the map.
           </p>
           <p>
             <strong>Google sign-in.</strong> If you choose it, Google sets cookies on its
@@ -91,7 +91,7 @@ export default function CookiesPage() {
           <h2>Controlling cookies</h2>
           <p>
             You can block or delete cookies in your browser settings. Blocking the cookies
-            above will prevent sign-in from working, but the rest of Epi-watch — the globe,
+            above will prevent sign-in from working, but the rest of Epi-watch — the map,
             outbreak data, news and video — works fully without an account and without them.
           </p>
 

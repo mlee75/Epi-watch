@@ -305,27 +305,6 @@ a { color: inherit; }
   .rb-table .table-wrap { margin-top: 8px; }
   @media (max-width: 520px) { .rb-row { grid-template-columns: 110px 1fr 32px; } }
 
-/* ── Globe3D ─────────────────────────────── */
-.globe-legend {
-  position: absolute; left: 12px; bottom: 12px; z-index: 10;
-  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius);
-  padding: 8px 10px; display: grid; gap: 4px;
-}
-.globe-legend-row { display: grid; grid-template-columns: 74px auto; align-items: center; gap: 8px; }
-.globe-legend-rule { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
-.globe-hint {
-  position: absolute; right: 12px; bottom: 12px; z-index: 10; pointer-events: none;
-  font-size: 11.5px; color: var(--ink-3);
-}
-@media (max-width: 640px) { .globe-legend-rule { display: none; } .globe-legend-row { grid-template-columns: auto; } }
-
-
-.globe-zoom {
-position: absolute; right: 12px; bottom: 36px; z-index: 10;
-display: grid; gap: 4px;
-}
-.globe-zoom .btn { width: 30px; height: 30px; padding: 0; font-size: 16px; line-height: 1; }
-
 /* ── TravelRiskCalculator ─────────────────────────────── */
 .trc-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 800px) { .trc-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -589,8 +568,6 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
 .hx-chart-title { font-size: 13px; font-weight: 600; color: var(--ink-1); }
 .hx-chart-value { font-size: 15px; font-weight: 600; color: var(--ink-1); font-variant-numeric: tabular-nums; }
 .hx-chart-value .muted { font-size: 11.5px; font-weight: 400; }
-.chg-up { color: var(--ink-1); font-weight: 600; }
-.chg-up::before { content: '▲ '; font-size: 9px; color: var(--ink-2); vertical-align: 1px; }
 
 /* ── Alerts ─────────────────────────────────────── */
 .alert-orig { font-size: 12.5px; color: var(--ink-3); line-height: 1.4; }
@@ -602,3 +579,113 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
 /* Seven nav items overflow on narrow screens; the row scrolls, without a bar. */
 .site-nav { scrollbar-width: none; }
 .site-nav::-webkit-scrollbar { display: none; }
+
+/* ── Trend badges (components/Trend.tsx) ──────── */
+:root { --trend-up: #e66767; --trend-down: #3987e5; }
+.trend {
+  display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-1);
+  padding: 1px 6px; border-radius: 4px; border: 1px solid transparent;
+}
+.trend > span { font-size: 9px; }
+.trend-up { background: rgba(230, 103, 103, 0.16); border-color: rgba(230, 103, 103, 0.45); }
+.trend-up > span { color: var(--trend-up); }
+.trend-down { background: rgba(57, 135, 229, 0.16); border-color: rgba(57, 135, 229, 0.45); }
+.trend-down > span { color: var(--trend-down); }
+.trend-flat { background: var(--surface-2); border-color: var(--baseline); color: var(--ink-2); }
+
+/* ── Live map (components/map/LiveMap.tsx) ────── */
+.lm { position: relative; }
+.lm-live { display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
+@media (max-width: 1000px) { .lm-live { grid-template-columns: minmax(0, 1fr); } }
+.lm-canvas { position: relative; overflow: hidden; background: #0d0d0d; }
+/* More specific than maplibre-gl.css, which sets .maplibregl-map { position: relative }. */
+.lm-canvas > .lm-map { position: absolute; inset: 0; }
+.lm-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; }
+.lm-canvas .maplibregl-ctrl-group { background: var(--surface-2); border: 1px solid var(--baseline); box-shadow: none; }
+.lm-canvas .maplibregl-ctrl-group button { width: 30px; height: 30px; }
+.lm-canvas .maplibregl-ctrl-group button + button { border-top: 1px solid var(--baseline); }
+.lm-canvas .maplibregl-ctrl-icon { filter: invert(0.9); }
+.lm-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib { background: rgba(13, 13, 13, 0.8); color: var(--ink-3); font-size: 10.5px; }
+.lm-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib a { color: var(--ink-2); }
+.lm-canvas .maplibregl-ctrl-attrib-button { filter: invert(0.85); background-color: transparent; }
+.lm-canvas .maplibregl-cooperative-gesture-screen { font-size: 14px; }
+
+.lm-filter {
+  position: absolute; left: 12px; bottom: 12px; z-index: 6; width: 260px; max-height: calc(100% - 80px);
+  display: flex; flex-direction: column; background: rgba(20, 20, 19, 0.94); border: 1px solid var(--baseline);
+  border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.lm-filter:not(.is-open) { width: auto; }
+.lm-filter-toggle { all: unset; cursor: pointer; padding: 8px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-1); }
+.lm-filter-toggle:focus-visible { outline: 2px solid var(--accent); }
+.lm-filter-body { padding: 4px 12px 12px; overflow-y: auto; display: grid; gap: 10px; }
+.lm-filter fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lm-filter legend { font-size: 11px; color: var(--ink-3); margin-bottom: 2px; }
+.lm-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+.lm-check input { accent-color: var(--accent); margin: 0; }
+.lm-check-label { flex: 1; min-width: 0; }
+.lm-count { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.lm-basemap { display: flex; gap: 4px; }
+.lm-sev summary { cursor: pointer; font-size: 12px; color: var(--accent-ink); }
+.lm-sev-row { display: flex; gap: 8px; align-items: center; font-size: 11.5px; margin-top: 4px; }
+
+/* Legend keys: the same shape as the mark on the map. */
+.lm-key { flex-shrink: 0; display: inline-block; width: 11px; height: 11px; }
+.lm-key-dot { border-radius: 50%; background: var(--k); }
+.lm-key-ring { border-radius: 50%; border: 2.5px solid var(--k); }
+.lm-key-square { border-radius: 2px; border: 1.5px solid var(--k); background: #0d0d0d; }
+.lm-key-fill { border-radius: 2px; background: var(--k); }
+.lm-key-label { border-radius: 50%; background: #c93545; box-shadow: 0 0 0 1.5px var(--k); width: 9px; height: 9px; }
+.lm-key-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 12px solid var(--k); }
+
+.lm-reset { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5; height: 28px; font-size: 12px; background: rgba(34, 34, 32, 0.92); }
+.lm-card { top: 12px; right: 12px; }
+.lm-cam { margin: 0 0 8px; display: grid; gap: 4px; }
+.lm-cam img, .lm-cam video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; background: var(--surface-3); display: block; }
+.lm-cam figcaption { font-size: 11px; }
+
+.lm-panel { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--hairline); background: var(--surface-1); }
+@media (max-width: 1000px) { .lm-panel { border-left: 0; border-top: 1px solid var(--hairline); max-height: 420px; } }
+.lm-live .lm-panel { max-height: 640px; }
+.lm-panel-head { padding: 12px 14px; border-bottom: 1px solid var(--hairline); display: grid; gap: 8px; }
+.lm-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+.lm-list li { border-bottom: 1px solid var(--hairline); }
+.lm-list button {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 14px;
+}
+.lm-list button:hover, .lm-list button.is-active { background: var(--surface-2); }
+.lm-list button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lm-list .lm-key { margin-top: 4px; }
+.lm-item { display: grid; gap: 2px; min-width: 0; }
+.lm-item-title { font-size: 12.5px; color: var(--ink-1); line-height: 1.35; }
+.lm-item-meta { font-size: 11.5px; color: var(--ink-3); line-height: 1.35; }
+.lm-empty { padding: 16px 14px; font-size: 12.5px; }
+.lm-panel-foot { padding: 10px 14px; font-size: 11px; line-height: 1.5; color: var(--ink-3); border-top: 1px solid var(--hairline); }
+
+/* ── Outbreaks by disease ────────────────────────── */
+.dx { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 960px) { .dx { grid-template-columns: minmax(0, 1fr); } }
+.dx-list { position: sticky; top: 68px; max-height: calc(100vh - 88px); display: flex; flex-direction: column; }
+@media (max-width: 960px) { .dx-list { position: static; max-height: 360px; } }
+.dx-items { list-style: none; margin: 0; padding: 0; overflow-y: auto; border-top: 1px solid var(--hairline); }
+.dx-items li { border-bottom: 1px solid var(--hairline); }
+.dx-items button { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; gap: 4px; padding: 10px 16px; }
+.dx-items button:hover { background: var(--surface-2); }
+.dx-items button.is-active { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
+.dx-items button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dx-name { font-size: 13.5px; color: var(--ink-1); font-weight: 500; }
+.dx-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 11.5px; color: var(--ink-3); }
+.lm-embed { border-bottom: 1px solid var(--hairline); }
+.dx-info dl { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 16px; font-size: 13px; margin: 0 0 12px; }
+.dx-info dt { color: var(--ink-3); }
+.dx-info dd { margin: 0; color: var(--ink-1); line-height: 1.55; }
+@media (max-width: 560px) { .dx-info dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .dx-info dd { margin-bottom: 8px; } }
+.dt tbody tr.is-open td { background: var(--surface-2); }
+.dx-reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dx-reports li { display: grid; gap: 2px; font-size: 12.5px; }
+.lm-legend-inline {
+  position: absolute; left: 12px; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px 12px;
+  padding: 6px 10px; font-size: 11.5px; background: rgba(20, 20, 19, 0.92); border: 1px solid var(--baseline); border-radius: var(--radius);
+}

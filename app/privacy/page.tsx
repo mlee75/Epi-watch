@@ -104,6 +104,21 @@ export default function PrivacyPage() {
                 <td>Only used if you choose Google sign-in</td>
               </tr>
               <tr>
+                <td>OpenFreeMap</td>
+                <td>Map tiles</td>
+                <td>Your IP address and the map area you view, when a map is on screen</td>
+              </tr>
+              <tr>
+                <td>Esri</td>
+                <td>Satellite imagery</td>
+                <td>Your IP address and the area you view, only when you switch the map to satellite</td>
+              </tr>
+              <tr>
+                <td>Transport for London, City of Seattle</td>
+                <td>Traffic camera images</td>
+                <td>Your IP address, only when you open a camera or an incident that has one nearby</td>
+              </tr>
+              <tr>
                 <td>YouTube (youtube-nocookie)</td>
                 <td>Video playback</td>
                 <td>Nothing until you press play; then your IP and player interaction go to Google</td>
@@ -112,7 +127,10 @@ export default function PrivacyPage() {
           </table>
           <p>
             Video embeds use YouTube&rsquo;s no-cookie host and load only when you click
-            play, so simply viewing a page with videos on it sends nothing to Google.
+            play, so simply viewing a page with videos on it sends nothing to Google. None of
+            the map, imagery or camera providers sets cookies through Epi-watch. Live aircraft,
+            disaster and 911 data is fetched by our server, so your browser does not contact
+            those sources.
           </p>
 
           <h2>How long we keep it</h2>

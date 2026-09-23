@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { SeverityBadge } from './SeverityBadge';
 import { LineChart } from './dashboard/LineChart';
+import { Trend } from './Trend';
 import { fmtCount, fmtDateShort, fmtNumber } from '@/lib/format';
 
 interface CountryOutbreak {
@@ -141,8 +142,7 @@ export function CountryTooltip({ countryName, iso3, threatLevel, outbreaks, onCl
                 </div>
                 <div className="muted" style={{ fontSize: 11.5 }}>
                   {hospital.sari.settledWeek ? `Week of ${fmtDateShort(hospital.sari.settledWeek)}` : 'No settled week yet'}
-                  {hospital.sari.change != null &&
-                    ` · ${hospital.sari.change > 0 ? '+' : ''}${Math.round(hospital.sari.change)}% vs prior 4 weeks`}
+                  {hospital.sari.change != null && <> · <Trend pct={hospital.sari.change} context="vs prior 4-week mean" /></>}
                   {hospital.sari.provisionalWeeks > 0 && ` · ${hospital.sari.provisionalWeeks} newer week(s) provisional`}
                 </div>
               </div>

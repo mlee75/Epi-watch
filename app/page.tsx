@@ -1,10 +1,10 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Suspense } from 'react';
 import { Header } from '@/components/Header';
 import { LiveTvPanel } from '@/components/LiveTvPanel';
 import { Footer } from '@/components/Footer';
 import { SeverityBadge } from '@/components/SeverityBadge';
+import { Trend } from '@/components/Trend';
 import { RegionBars, type RegionRow } from '@/components/dashboard/RegionBars';
 import TravelRiskCalculator from '@/components/TravelRiskCalculator';
 import prisma from '@/lib/db';
@@ -15,11 +15,11 @@ import type { Outbreak, OutbreakStats } from '@/lib/types';
 import { SEVERITY_ORDER, SEVERITY_RULE, normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
 import { fmtCount, fmtDate, fmtDateShort, fmtNumber, regionLabel } from '@/lib/format';
 
-// 3D Globe — dynamically imported, browser-only (Three.js requires window)
-const GlobeScene = dynamic(() => import('@/components/GlobeScene'), {
+// MapLibre needs the browser (WebGL, workers), so the map loads client-side.
+const LiveMap = dynamic(() => import('@/components/map/LiveMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center">
+    <div style={{ height: 640, display: 'grid', placeItems: 'center' }}>
       <p className="muted" style={{ fontSize: 13 }}>Loading map…</p>
     </div>
   ),
@@ -232,17 +232,22 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <div className="home-grid" style={{ marginTop: 20 }}>
-          <section className="panel home-map" aria-labelledby="map-title">
+        <section className="panel" style={{ marginTop: 20 }} aria-labelledby="map-title">
+          <div className="panel-header">
+            <h2 id="map-title" className="panel-title">Live operations map</h2>
+            <span className="panel-meta">Select an item to zoom to street level · Ctrl or ⌘ + scroll to zoom</span>
+          </div>
+          <LiveMap outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />} />
+        </section>
+
+        <div className="home-grid-2" style={{ marginTop: 20 }}>
+          <section className="panel" aria-labelledby="region-title">
             <div className="panel-header">
-              <h2 id="map-title" className="panel-title">Map</h2>
-              <span className="panel-meta">Country shading = highest severity on record</span>
+              <h2 id="region-title" className="panel-title">Records by WHO region</h2>
+              <span className="panel-meta">{fmtNumber(stats.total)} records</span>
             </div>
-            <div className="home-map-canvas">
-              <Suspense>
-                <GlobeScene outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} />
-              </Suspense>
-              <LiveTvPanel />
+            <div className="panel-body">
+              <RegionBars rows={regionRows} />
             </div>
           </section>
 
@@ -280,53 +285,6 @@ export default async function HomePage() {
               </table>
             </div>
             <div className="panel-foot">– means the source stated no figure, not zero.</div>
-          </section>
-        </div>
-
-        <div className="home-grid-2" style={{ marginTop: 20 }}>
-          <section className="panel" aria-labelledby="region-title">
-            <div className="panel-header">
-              <h2 id="region-title" className="panel-title">Records by WHO region</h2>
-              <span className="panel-meta">{fmtNumber(stats.total)} records</span>
-            </div>
-            <div className="panel-body">
-              <RegionBars rows={regionRows} />
-            </div>
-          </section>
-
-          <section className="panel" aria-labelledby="recent-title">
-            <div className="panel-header">
-              <h2 id="recent-title" className="panel-title">Recently added</h2>
-              <span className="panel-meta">Last updated {fmtDate(stats.lastUpdated)}</span>
-            </div>
-            <div className="table-wrap">
-              <table className="dt">
-                <thead>
-                  <tr>
-                    <th>Added</th>
-                    <th>Record</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((o) => (
-                    <tr key={o.id}>
-                      <td className="muted tabular-nums" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(o.createdAt)}</td>
-                      <td>
-                        {o.disease}
-                        <span className="sub">{o.country}</span>
-                      </td>
-                      <td>
-                        <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="link">
-                          {o.sourceName}
-                        </a>
-                        <span className="sub">{o.verified ? 'Curated' : 'Automated, unreviewed'}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </section>
         </div>
 
@@ -380,7 +338,7 @@ export default async function HomePage() {
                         <td className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(c.reference!.week)}</td>
                         <td className="num">{fmtNumber(c.reference!.cases ?? 0)}</td>
                         <td className="num muted">{fmtNumber(Math.round(c.priorMean ?? 0))}</td>
-                        <td className="num chg-up">+{Math.round(c.change!)}%</td>
+                        <td className="num"><Trend pct={c.change} context="vs prior 4-week mean" /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -394,6 +352,41 @@ export default async function HomePage() {
             </p>
           </section>
         </div>
+
+        <section className="panel" style={{ marginTop: 20 }} aria-labelledby="recent-title">
+          <div className="panel-header">
+            <h2 id="recent-title" className="panel-title">Recently added</h2>
+            <span className="panel-meta">Last updated {fmtDate(stats.lastUpdated)}</span>
+          </div>
+          <div className="table-wrap">
+            <table className="dt">
+              <thead>
+                <tr>
+                  <th>Added</th>
+                  <th>Record</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((o) => (
+                  <tr key={o.id}>
+                    <td className="muted tabular-nums" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(o.createdAt)}</td>
+                    <td>
+                      {o.disease}
+                      <span className="sub">{o.country}</span>
+                    </td>
+                    <td>
+                      <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="link">
+                        {o.sourceName}
+                      </a>
+                      <span className="sub">{o.verified ? 'Curated' : 'Automated, unreviewed'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <TravelRiskCalculator />
 
@@ -445,10 +438,8 @@ export default async function HomePage() {
       <style>{`
         .home-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
         .home-grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-        .home-map-canvas { position: relative; height: 560px; }
         @media (max-width: 960px) {
           .home-grid, .home-grid-2 { grid-template-columns: minmax(0, 1fr); }
-          .home-map-canvas { height: 460px; }
         }
         .method-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
         .method-grid h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }

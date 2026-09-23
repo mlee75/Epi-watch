@@ -15,6 +15,8 @@ const REFERENCES: [string, string][] = [
   ['WHO FluID (SARI)', 'https://www.who.int/teams/global-influenza-programme/surveillance-and-monitoring/fluid'],
   ['CDC NHSN hospital data', 'https://data.cdc.gov/d/ua7e-t2fy'],
   ['UKHSA data dashboard', 'https://ukhsa-dashboard.data.gov.uk/'],
+  ['GDACS disaster alerts', 'https://www.gdacs.org/'],
+  ['adsb.lol aircraft data (ODbL)', 'https://adsb.lol/'],
 ];
 
 const SITE: [string, string][] = [
@@ -76,6 +78,7 @@ export function Footer() {
               <li>Outbreak records ingested daily at 06:00 UTC</li>
               <li>Alerts refreshed every 30 minutes</li>
               <li>Hospital data refreshed hourly</li>
+              <li>Aircraft positions every 30 seconds</li>
               <li>Severity from reported cases and deaths</li>
               <li>
                 <a href="https://github.com/mlee75/Epi-watch" target="_blank" rel="noopener noreferrer" className="link">

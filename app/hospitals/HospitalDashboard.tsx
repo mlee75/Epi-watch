@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { LineChart } from '@/components/dashboard/LineChart';
+import { Trend } from '@/components/Trend';
 import type { NhsnData, NhsnWeek, SariCountry, SariData, UkData } from '@/lib/live/hospital';
 import { SARI_MIN_BASE, SARI_SETTLE_DAYS } from '@/lib/live/hospital';
 import { fmtDateShort, fmtNumber } from '@/lib/format';
@@ -35,7 +36,6 @@ const US_STATE: Record<string, string> = {
   PR: 'Puerto Rico', GU: 'Guam', VI: 'US Virgin Islands', AS: 'American Samoa', MP: 'Northern Mariana Islands',
 };
 
-const fmtPct = (n: number | null) => (n == null ? '–' : `${n > 0 ? '+' : ''}${Math.round(n)}%`);
 const fmtInt = (n: number) => fmtNumber(Math.round(n));
 
 type SariSort = 'country' | 'change' | 'latest';
@@ -201,8 +201,8 @@ export default function HospitalDashboard({ sari, nhsn, uk, generatedAt }: Props
                         </td>
                         <td className="num">{c.reference?.cases != null ? fmtInt(c.reference.cases) : '–'}</td>
                         <td className="num muted">{c.priorMean != null ? fmtInt(c.priorMean) : '–'}</td>
-                        <td className={`num ${c.change != null && c.change >= 25 ? 'chg-up' : ''}`}>
-                          {c.change != null ? fmtPct(c.change) : <span className="muted" title={`Prior mean below ${SARI_MIN_BASE}`}>–</span>}
+                        <td className="num">
+                          {c.change != null ? <Trend pct={c.change} context="vs prior 4-week mean" /> : <span className="muted" title={`Prior mean below ${SARI_MIN_BASE}`}>–</span>}
                         </td>
                         <td>
                           <LineChart compact label={`Weekly SARI cases in ${c.country}`} format={fmtInt}
@@ -264,7 +264,8 @@ export default function HospitalDashboard({ sari, nhsn, uk, generatedAt }: Props
                       <span className="hx-chart-title">{name}</span>
                       <span className="hx-chart-value">
                         {latest != null ? fmtInt(latest) : '–'}
-                        <span className="muted"> /wk {chg != null && `· ${fmtPct(chg)} vs prior week`}</span>
+                        <span className="muted"> /wk</span>
+                        {chg != null && <> <Trend pct={chg} context="vs prior week" /></>}
                       </span>
                     </div>
                     <LineChart label={`Weekly new ${name} admissions, ${jur === 'USA' ? 'United States' : US_STATE[jur] ?? jur}`}
