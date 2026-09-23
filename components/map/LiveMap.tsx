@@ -35,7 +35,10 @@ interface Props {
   /** Disease mode: called when a highlighted country is clicked. */
   onCountryClick?: (country: string) => void;
   aiEnabled?: boolean;
-  height?: number;
+  /** Pixels or any CSS length, e.g. "calc(100vh - 150px)". */
+  height?: number | string;
+  /** Slowly spin the globe until the user interacts with it. */
+  autoRotate?: boolean;
   /** Extra overlay rendered inside the map canvas (e.g. the live TV panel). */
   overlay?: ReactNode;
 }
@@ -133,7 +136,7 @@ function nearestCameras(cams: Camera[], lat: number, lon: number, maxKm: number,
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountryClick, aiEnabled = false, height = 640, overlay }: Props) {
+export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountryClick, aiEnabled = false, height = 640, overlay, autoRotate = false }: Props) {
   const live = mode === 'live';
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -475,6 +478,40 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     map.setFeatureState({ source: 'countries', id: selectedIso }, { selected: true });
     return () => { if (map.getSource('countries')) map.setFeatureState({ source: 'countries', id: selectedIso }, { selected: false }); };
   }, [ready, selectedIso]);
+
+  // ── Idle rotation ──
+  // Spins the globe about 3° a second while zoomed out. Any interaction or
+  // selection stops it for good, so it never fights the user.
+  const spinning = useRef(autoRotate);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !autoRotate) return;
+    const stop = () => { spinning.current = false; };
+    map.on('mousedown', stop);
+    map.on('touchstart', stop);
+    map.on('wheel', stop);
+    map.on('dragstart', stop);
+    let raf = 0;
+    let last = performance.now();
+    const step = (t: number) => {
+      const dt = (t - last) / 1000;
+      last = t;
+      if (spinning.current && !map.isMoving() && map.getZoom() < 3.5) {
+        const c = map.getCenter();
+        map.setCenter([c.lng + dt * 3, c.lat]);
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      map.off('mousedown', stop);
+      map.off('touchstart', stop);
+      map.off('wheel', stop);
+      map.off('dragstart', stop);
+    };
+  }, [ready, autoRotate]);
+  useEffect(() => { if (selection) spinning.current = false; }, [selection]);
 
   // ── Actions ──
   const flyTo = (lat: number, lon: number, zoom: number) =>

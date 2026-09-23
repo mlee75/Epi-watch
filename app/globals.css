@@ -689,3 +689,35 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
   position: absolute; left: 12px; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px 12px;
   padding: 6px 10px; font-size: 11.5px; background: rgba(20, 20, 19, 0.92); border: 1px solid var(--baseline); border-radius: var(--radius);
 }
+
+/* ── Entry screen (components/IntroGate.tsx) ──── */
+.gate {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  /* A scrim, not a blur: the rotating globe stays visible behind the quote. */
+  background: radial-gradient(ellipse at center, rgba(13, 13, 13, 0.8) 0%, rgba(13, 13, 13, 0.93) 60%, #0d0d0d 100%);
+  transition: opacity 0.7s ease, visibility 0.7s;
+}
+.gate.is-leaving { opacity: 0; visibility: hidden; }
+.gate-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gate-inner {
+  position: relative; max-width: 720px; text-align: center; display: grid; justify-items: center; gap: 28px;
+  opacity: 0; transform: translateY(8px); transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.gate-inner.is-visible { opacity: 1; transform: none; }
+.gate-mark { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; color: var(--ink-1); }
+.gate-quote { margin: 0; display: grid; gap: 16px; }
+.gate-quote blockquote {
+  margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(22px, 3.4vw, 34px);
+  line-height: 1.35; color: var(--ink-1); font-weight: 400; text-wrap: balance;
+}
+.gate-quote figcaption { display: grid; gap: 2px; }
+.gate-author { font-size: 14px; color: var(--ink-1); font-weight: 500; }
+.gate-source { font-size: 12.5px; color: var(--ink-3); }
+.gate-purpose { font-size: 14px; color: var(--ink-2); max-width: 460px; line-height: 1.6; margin: 0; }
+.gate-enter { height: 42px; padding: 0 22px; font-size: 14px; }
+.gate-skip { all: unset; cursor: pointer; position: absolute; right: 20px; bottom: 20px; font-size: 12.5px; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .gate, .gate-inner { transition: none; } }
+
+/* Globe-first homepage: the map is the page's first and largest element. */
+.home-hero { margin-top: 12px; }
+@media (min-width: 1001px) { .home-hero .lm-panel { max-height: max(560px, calc(100vh - 150px)); } }

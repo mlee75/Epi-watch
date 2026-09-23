@@ -2,6 +2,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { LiveTvPanel } from '@/components/LiveTvPanel';
+import { IntroGate } from '@/components/IntroGate';
 import { Footer } from '@/components/Footer';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import { Trend } from '@/components/Trend';
@@ -188,8 +189,19 @@ export default async function HomePage() {
       <Header />
 
       <main className="page">
-        <header className="page-head">
-          <h1 className="page-title">Global outbreak overview</h1>
+        <IntroGate />
+        {/* The globe is the first and largest thing on the page. */}
+        <section className="panel home-hero" aria-labelledby="map-title">
+          <div className="panel-header">
+            <h1 id="map-title" className="panel-title">Live global health map</h1>
+            <span className="panel-meta">Select an item to zoom to street level · Ctrl or ⌘ + scroll to zoom</span>
+          </div>
+          <LiveMap outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />}
+            height="max(560px, calc(100vh - 150px))" autoRotate />
+        </section>
+
+        <header className="page-head" style={{ marginTop: 32 }}>
+          <h2 className="page-title">Global outbreak overview</h2>
           <p className="page-lede">
             {fmtNumber(stats.total)} outbreak records across {stats.countriesAffected} countries.{' '}
             {curated} are curated from WHO, CDC, PAHO, UKHSA and UNICEF reporting; {automated}{' '}
@@ -232,13 +244,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="panel" style={{ marginTop: 20 }} aria-labelledby="map-title">
-          <div className="panel-header">
-            <h2 id="map-title" className="panel-title">Live operations map</h2>
-            <span className="panel-meta">Select an item to zoom to street level · Ctrl or ⌘ + scroll to zoom</span>
-          </div>
-          <LiveMap outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />} />
-        </section>
+
 
         <div className="home-grid-2" style={{ marginTop: 20 }}>
           <section className="panel" aria-labelledby="region-title">
