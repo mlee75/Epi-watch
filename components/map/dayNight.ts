@@ -9,8 +9,8 @@
  *    VIIRS_Black_Marble)
  *
  * For every pixel we compute the sun's elevation there and blend: daylight
- * where the sun is up (brighter towards noon), city lights where it is well
- * below the horizon, and a soft twilight band between. The result is an image
+ * where the sun is up (brighter towards noon), a near-black Earth with warm
+ * city lights where it is night, and a soft twilight band between. The result is an image
  * the map draws on the globe; it is recomposed every few minutes as the
  * terminator moves (about 1.25 degrees of longitude every 5 minutes).
  */
@@ -97,6 +97,36 @@ export async function createDayNightComposer(): Promise<DayNightComposer> {
   const nd = night.data;
   let lastUrl: string | null = null;
 
+  // City lights, extracted once from Black Marble. Only warm pixels count:
+  // its moonlit land has a blue-violet cast that tinted the night side
+  // purple, while lights are yellow-white (red and green well above blue).
+  const lights = new Float32Array(W * H);
+  for (let p = 0, i = 0; p < W * H; p++, i += 4) {
+    lights[p] = Math.max(0, (nd[i] + nd[i + 1]) * 0.5 - nd[i + 2] * 0.6 - 16) / 120;
+  }
+  // A soft glow around the lights (two box-blur passes, radius 3): the bloom
+  // that makes night cities read from orbit instead of as single pixels.
+  const glow = new Float32Array(W * H);
+  {
+    const tmp = new Float32Array(W * H);
+    const R = 3;
+    const pass = (src: Float32Array, dst: Float32Array, horizontal: boolean) => {
+      const n = horizontal ? W : H;
+      const m = horizontal ? H : W;
+      for (let j = 0; j < m; j++) {
+        let acc = 0;
+        const at = (k: number) => (horizontal ? j * W + k : k * W + j);
+        for (let k = -R; k <= R; k++) acc += src[at(Math.min(n - 1, Math.max(0, k)))];
+        for (let k = 0; k < n; k++) {
+          dst[at(k)] = acc / (2 * R + 1);
+          acc += src[at(Math.min(n - 1, k + R + 1))] - src[at(Math.max(0, k - R))];
+        }
+      }
+    };
+    pass(lights, tmp, true);
+    pass(tmp, glow, false);
+  }
+
   return {
     async render(date: Date) {
       const sun = subsolarPoint(date);
@@ -115,12 +145,17 @@ export async function createDayNightComposer(): Promise<DayNightComposer> {
           // Daylight from ~6° below the horizon (civil twilight) to ~3° above.
           const dayF = smooth(-0.1, 0.05, sinEl);
           // Low sun is dimmer than noon sun, which gives the globe its shading.
-          const lum = dayF * (0.5 + 0.5 * Math.sqrt(Math.max(0, sinEl)));
+          const lum = dayF * (0.55 + 0.45 * Math.sqrt(Math.max(0, sinEl)));
           // City lights come up as the sky darkens (sun below ~3°).
           const nightF = 1 - smooth(-0.1, 0.0, sinEl);
-          o[i] = Math.min(255, dd[i] * lum + nd[i] * nightF * 1.3);
-          o[i + 1] = Math.min(255, dd[i + 1] * lum + nd[i + 1] * nightF * 1.3);
-          o[i + 2] = Math.min(255, dd[i + 2] * lum + nd[i + 2] * nightF * 1.3);
+          const p = y * W + x;
+          const light = Math.min(1.4, lights[p] * 1.6 + glow[p] * 2.2) * nightF;
+          // The night side is the day image darkened and cooled: a deep blue
+          // planet in Earth's shadow, not a black or tinted one.
+          const dark = 1 - dayF;
+          o[i] = Math.min(255, dd[i] * (lum + dark * 0.1) + light * 255);
+          o[i + 1] = Math.min(255, dd[i + 1] * (lum + dark * 0.13) + light * 205);
+          o[i + 2] = Math.min(255, dd[i + 2] * (lum + dark * 0.2) + light * 130);
           o[i + 3] = 255;
         }
       }

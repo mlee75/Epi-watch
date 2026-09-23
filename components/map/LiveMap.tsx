@@ -12,7 +12,7 @@ import { normalizeSeverity, severityRank, SEVERITY_LABEL, SEVERITY_ORDER, SEVERI
 import { CountryTooltip } from '@/components/CountryTooltip';
 import { OutbreakDetailPanel } from '@/components/OutbreakDetailPanel';
 import { ENTER_EVENT } from '@/lib/events';
-import { MERCATOR_WORLD, NIGHT_URL, createDayNightComposer, subsolarPoint } from './dayNight';
+import { DAY_URL, MERCATOR_WORLD, createDayNightComposer, subsolarPoint } from './dayNight';
 import {
   BASEMAP_STYLE, COLOR, COUNTRIES_URL, GDACS_COLOR, SATELLITE_TILES, SEVERITY_FILL, buildCountryIndex, countryCode,
 } from './mapStyle';
@@ -54,7 +54,7 @@ const LAYER_DEFS: { key: LayerKey; label: string; color: string; shape: 'arrow' 
   { key: 'collisions', label: 'Traffic collisions (Seattle 911)', color: COLOR.collision, shape: 'dot', group: 'Emergencies' },
   { key: 'rescueFire', label: 'Rescues and fires (Seattle 911)', color: COLOR.rescueFire, shape: 'dot', group: 'Emergencies' },
   { key: 'daynight', label: 'Day and night (live sun)', color: '#e8c547', shape: 'dot', group: 'Context' },
-  { key: 'outbreaks', label: 'Outbreak records by country', color: SEVERITY_FILL.CRITICAL, shape: 'fill', group: 'Context' },
+  { key: 'outbreaks', label: 'Outbreak records', color: SEVERITY_FILL.CRITICAL, shape: 'dot', group: 'Context' },
   { key: 'hospitals', label: 'Hospitals (zoom in)', color: COLOR.hospital, shape: 'label', group: 'Context' },
   { key: 'cameras', label: 'Traffic cameras (London, Seattle)', color: COLOR.camera, shape: 'square', group: 'Context' },
 ];
@@ -127,6 +127,24 @@ function bboxOf(features: GeoJSON.Feature[]): [Coord, Coord] | null {
   };
   for (const f of features) visit((f.geometry as GeoJSON.Polygon | GeoJSON.MultiPolygon).coordinates);
   return minX <= maxX ? [[minX, minY], [maxX, maxY]] : null;
+}
+
+/** Area-weighted centroid of a country's largest polygon (its main land mass). */
+function polygonAnchor(geom: GeoJSON.Geometry): [number, number] | null {
+  const polys: GeoJSON.Position[][][] =
+    geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+  let best: [number, number] | null = null;
+  let bestArea = 0;
+  for (const poly of polys) {
+    const ring = poly[0];
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
+    }
+    if (Math.abs(a) > bestArea && a !== 0) { bestArea = Math.abs(a); best = [cx / (3 * a), cy / (3 * a)]; }
+  }
+  return best;
 }
 
 function nearestCameras(cams: Camera[], lat: number, lon: number, maxKm: number, n = 2) {
@@ -271,10 +289,10 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
 
         if (live) {
           // Earth from space: daylight and city lights from the real sun
-          // position (see dayNight.ts). Starts as the night image and is
+          // position (see dayNight.ts). Starts as the daylight image and is
           // replaced by the composite as soon as it is rendered. It fades out
           // by zoom 6.5, where streets take over.
-          map!.addSource('earth', { type: 'image', url: NIGHT_URL, coordinates: MERCATOR_WORLD });
+          map!.addSource('earth', { type: 'image', url: DAY_URL, coordinates: MERCATOR_WORLD });
           map!.addLayer({
             id: 'earth', type: 'raster', source: 'earth',
             paint: {
@@ -297,9 +315,13 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
           paint: {
             // On the live globe, low-severity countries are left unshaded: grey
             // patches over the Earth imagery were noise, not signal.
-            'fill-color': ['match', ['get', 'sev'],
-              'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM,
-              'LOW', mode === 'disease' ? SEVERITY_FILL.LOW : 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'],
+            // Only the disease map shades whole countries. On the live globe
+            // the fill is transparent (it just makes countries clickable) and
+            // outbreaks are markers: red shading over the Earth imagery tinted
+            // it purple and hid the day/night.
+            'fill-color': mode === 'disease'
+              ? ['match', ['get', 'sev'], 'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM, 'LOW', SEVERITY_FILL.LOW, 'rgba(0,0,0,0)']
+              : 'rgba(0,0,0,0)',
             // Shading fades out as you zoom in, so streets stay readable.
             // Translucent, so the Earth underneath (day, night, city lights)
             // still reads through the outbreak shading.
@@ -317,6 +339,19 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
             'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 0.9, 0],
           },
         }, firstSymbol);
+
+        if (live) {
+          map!.addSource('outbreak-markers', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+          map!.addLayer({
+            id: 'outbreak-markers', type: 'circle', source: 'outbreak-markers',
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 4, 5, 6, 15, 9, 40, 12],
+              'circle-color': ['match', ['get', 'sev'], 'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM, SEVERITY_FILL.LOW],
+              'circle-stroke-color': '#0d0d0d', 'circle-stroke-width': 1.5, 'circle-opacity': 0.95,
+              'circle-pitch-alignment': 'map',
+            },
+          });
+        }
 
         // Hospitals from the basemap's own points of interest.
         if (map!.getSource('openmaptiles')) {
@@ -390,7 +425,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         setReady(true);
       });
 
-      const clickable = ['aircraft', 'em-aircraft', 'em-calls', 'em-disaster', 'cameras', 'countries-fill'];
+      const clickable = ['aircraft', 'em-aircraft', 'em-calls', 'em-disaster', 'cameras', 'outbreak-markers', 'countries-fill'];
       map.on('click', (e) => {
         const present = clickable.filter((l) => map!.getLayer(l));
         const feats = map!.queryRenderedFeatures(e.point, { layers: present });
@@ -400,6 +435,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         if (lid === 'aircraft') { setSelection({ kind: 'aircraft', hex: String(f.properties.hex) }); setFollow(false); }
         else if (lid.startsWith('em-')) setSelection({ kind: 'emergency', id: String(f.properties.id) });
         else if (lid === 'cameras') setSelection({ kind: 'camera', id: String(f.properties.id) });
+        else if (lid === 'outbreak-markers') setSelection({ kind: 'country', name: String(f.properties.name), iso3: String(f.properties.iso3) });
         else if (lid === 'countries-fill') {
           const name = String(f.properties.ADMIN ?? '');
           if (mode === 'disease') { onCountryClickRef.current?.(name); return; }
@@ -438,13 +474,51 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     }
   }, [ready, countries, severityByCode, mode]);
 
+  // ── Outbreak markers (live globe): one per country ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !live || !countries) return;
+    const nameByCode = new Map(countries.features.map((f) => {
+      const p = f.properties as { ADM0_A3?: string; ADMIN?: string };
+      return [p.ADM0_A3 ?? '', p.ADMIN ?? ''];
+    }));
+    // Markers sit at the centre of each country's largest land area, taken
+    // from its outline. Stored record coordinates are not used: records filed
+    // under "Congo" and "DRC" all carry the Republic of the Congo's centre
+    // point, which put the DRC outbreak in the wrong country.
+    const anchor = new Map<string, [number, number]>();
+    for (const f of countries.features) {
+      const code = (f.properties as { ADM0_A3?: string }).ADM0_A3;
+      if (code) { const pt = polygonAnchor(f.geometry); if (pt) anchor.set(code, pt); }
+    }
+    const agg = new Map<string, { count: number; sev: SeverityLevel }>();
+    for (const o of outbreaks) {
+      const code = countryCode(countryIdx, o.country, o.disease);
+      if (!code) continue;
+      const sev = normalizeSeverity(o.severity);
+      const a = agg.get(code) ?? { count: 0, sev };
+      a.count++;
+      if (severityRank(sev) < severityRank(a.sev)) a.sev = sev;
+      agg.set(code, a);
+    }
+    const features = [...agg.entries()]
+      .filter(([code]) => anchor.has(code))
+      .map(([code, a]) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: anchor.get(code)! },
+        properties: { iso3: code, name: nameByCode.get(code) ?? code, sev: a.sev, count: a.count },
+      }))
+      // Worst severity drawn last, on top.
+      .sort((x, y) => severityRank(y.properties.sev) - severityRank(x.properties.sev));
+    (map.getSource('outbreak-markers') as GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
+  }, [ready, live, countries, outbreaks, countryIdx]);
+
   // ── Layer visibility and basemap ──
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
     const vis = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    vis('countries-fill', layers.outbreaks || mode === 'disease');
-    vis('countries-line', layers.outbreaks || mode === 'disease');
+    vis('outbreak-markers', layers.outbreaks);
     vis('hospital-dot', layers.hospitals);
     vis('hospital-label', layers.hospitals);
     vis('cameras', layers.cameras);
@@ -676,14 +750,14 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
                 </div>
                 {layers.outbreaks && (
                   <details className="lm-sev">
-                    <summary>Country shading</summary>
-                    {SEVERITY_ORDER.filter((lvl) => lvl !== 'LOW').map((lvl) => (
+                    <summary>Outbreak markers</summary>
+                    {SEVERITY_ORDER.map((lvl) => (
                       <div key={lvl} className="lm-sev-row">
                         <span className="sev" style={{ ['--sev-color' as string]: SEVERITY_FILL[lvl] }}>{SEVERITY_LABEL[lvl]}</span>
                         <span className="muted">{SEVERITY_RULE[lvl]}</span>
                       </div>
                     ))}
-                    <p className="lm-sun" style={{ marginTop: 6 }}>Countries with only low-severity records are not shaded.</p>
+                    <p className="lm-sun" style={{ marginTop: 6 }}>One marker per country: colour is the highest severity recorded, size the number of records.</p>
                   </details>
                 )}
               </div>
