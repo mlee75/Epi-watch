@@ -37,8 +37,8 @@ const config: Config = {
         purple:       '#a78bfa',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'Space Grotesk', 'sans-serif'],
-        mono: ['var(--font-mono)', 'Space Mono', 'monospace'],
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
       },
       fontSize: {
         'logo':       ['20px', { fontWeight: '700', letterSpacing: '0.12em' }],

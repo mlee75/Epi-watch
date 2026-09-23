@@ -3,15 +3,15 @@ import { Footer } from '@/components/Footer';
 import LiveNewsFeed from './LiveNewsFeed';
 
 export const metadata = {
-  title: 'Live Outbreak News | EPI-WATCH',
-  description: 'Real-time outbreak news, official reports, and field updates from WHO, CDC, ProMED, and global media.',
+  title: 'Outbreak news | Epi-watch',
+  description: 'Recent infectious disease outbreak coverage, grouped by publisher type: health agencies, field organisations and media.',
 };
 
 export default function NewsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
+      <main>
         <LiveNewsFeed />
       </main>
       <Footer />

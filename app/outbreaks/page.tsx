@@ -8,8 +8,8 @@ import LiveOutbreaksDashboard from './LiveOutbreaksDashboard';
 export const revalidate = 60;
 
 export const metadata = {
-  title: 'Live Outbreaks | EPI-WATCH',
-  description: 'Real-time disease outbreak monitoring with country-level filtering and latest reports.',
+  title: 'Outbreak records | Epi-watch',
+  description: 'All outbreak records, filterable by severity, WHO region, country and source.',
 };
 
 async function getOutbreaks(): Promise<{ outbreaks: Outbreak[]; countries: string[] }> {
@@ -50,7 +50,7 @@ export default async function OutbreaksPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
+      <main>
         <Suspense>
           <LiveOutbreaksDashboard initialOutbreaks={outbreaks} countries={countries} />
         </Suspense>

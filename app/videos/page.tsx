@@ -3,16 +3,16 @@ import { Footer } from '@/components/Footer';
 import VideoIntelFeed from './VideoIntelFeed';
 
 export const metadata = {
-  title: 'Verified Video Intelligence | EPI-WATCH',
+  title: 'Video | Epi-watch',
   description:
-    'Outbreak briefings and field reports published by public health authorities including WHO, CDC and PAHO, sourced from an explicit channel allowlist.',
+    'Outbreak briefings and field reports and news coverage from a fixed list of health-agency and newsroom channels.',
 };
 
 export default function VideosPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
+      <main>
         <VideoIntelFeed />
       </main>
       <Footer />

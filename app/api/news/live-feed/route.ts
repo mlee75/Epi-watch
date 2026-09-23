@@ -168,24 +168,25 @@ function determineSeverity(title: string, content: string): string {
   return 'LOW';
 }
 
+// Official = published BY a health authority, judged on the publisher alone.
+// The previous version also matched the headline ("who ", "official") and fell
+// back to whichever search query returned the article, so a story ABOUT the
+// WHO — or any headline containing "people who…" — was labelled Official, as
+// were a medical journal and a news blog. Acronyms are matched case-sensitively
+// as whole words, since "who" is also an ordinary English word.
+const OFFICIAL_ACRONYM = /\b(WHO|CDC|PAHO|ECDC|UKHSA|FDA|NIH|NHS|NCDC|Africa CDC)\b/;
+const OFFICIAL_NAME =
+  /world health organi[sz]ation|centers for disease control|pan american health|european centre for disease|health security agency|ministry of health|department of health|who\.int|\bgov\.uk\b|\.gov(\.[a-z]{2})?\b/i;
+const FIELD_SOURCE = /promed|reliefweb|m[ée]decins sans fronti[èe]res|doctors without borders|\bMSF\b|unicef|\bIFRC\b|red cross|international organi[sz]ation for migration|\bIOM\b|\bUNHCR\b/i;
+
 function classifyCategory(
-  title: string,
+  _title: string,
   source: string,
-  fallback: 'official' | 'field' | 'media',
+  _fallback: 'official' | 'field' | 'media',
 ): 'official' | 'field' | 'media' {
-  const s = source.toLowerCase();
-  const t = title.toLowerCase();
-  if (s.includes('who') || s.includes('world health') || s.includes('cdc') ||
-      s.includes('paho') || s.includes('ecdc') || t.includes('who ') ||
-      t.includes('official') || t.includes('ministry of health') ||
-      s.includes('.gov')) {
-    return 'official';
-  }
-  if (s.includes('promed') || s.includes('reliefweb') || s.includes('msf') ||
-      s.includes('unicef') || t.includes('field report') || t.includes('on the ground')) {
-    return 'field';
-  }
-  return fallback;
+  if (OFFICIAL_ACRONYM.test(source) || OFFICIAL_NAME.test(source)) return 'official';
+  if (FIELD_SOURCE.test(source)) return 'field';
+  return 'media';
 }
 
 // ─── GET handler ─────────────────────────────────────────────────────────────
@@ -261,16 +262,8 @@ export async function GET(request: NextRequest) {
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     });
 
-    // Breaking banner from DB
-    const breaking = outbreaks
-      .filter((o) => o.severity === 'CRITICAL')
-      .slice(0, 1)[0] ?? null;
-
     return NextResponse.json({
       articles: articles.slice(0, 50),
-      breaking: breaking
-        ? { disease: breaking.disease, country: breaking.country, severity: breaking.severity }
-        : null,
       meta: {
         totalFetched: articles.length,
         sources: shuffled.length,
@@ -281,7 +274,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error('[/api/news/live-feed]', err);
-    return NextResponse.json({ articles: [], breaking: null, meta: {} }, { status: 500 });
+    return NextResponse.json({ articles: [], meta: {} }, { status: 500 });
   }
 }
 

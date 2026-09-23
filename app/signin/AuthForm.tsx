@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 
-const mono = 'var(--font-mono), Space Mono, monospace';
-
 interface Props {
   mode: 'signin' | 'signup';
   googleEnabled: boolean;
@@ -63,157 +61,72 @@ export function AuthForm({ mode, googleEnabled }: Props) {
     }
   }
 
-  const field: React.CSSProperties = {
-    width: '100%',
-    background: '#0a0e20',
-    border: '1px solid #1e2749',
-    borderRadius: 8,
-    padding: '10px 12px',
-    color: '#e8ecf8',
-    fontSize: 14,
-    outline: 'none',
-  };
-
-  const label: React.CSSProperties = {
-    display: 'block',
-    fontFamily: mono,
-    fontSize: 10,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: '#6b7280',
-    marginBottom: 6,
-  };
-
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <h1 className="text-3xl font-bold mb-2">
-        {isSignup ? 'Create account' : 'Sign in'}
-      </h1>
-      <p style={{ color: '#a0a8c8', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-        {isSignup
-          ? 'An account lets you save a watchlist of diseases and countries. Epi-watch stores only your email and that list.'
-          : 'Sign in to reach your saved watchlist.'}
-      </p>
+    <div className="page auth-page">
+      <header className="page-head">
+        <h1 className="page-title">{isSignup ? 'Create an account' : 'Sign in'}</h1>
+        <p className="page-lede">
+          {isSignup
+            ? 'Everything on Epi-watch works without an account. An account stores only your email and, once the feature ships, a watchlist of diseases and countries.'
+            : 'Sign in to your Epi-watch account.'}
+        </p>
+      </header>
 
-      {googleEnabled && (
-        <>
-          <button
-            onClick={() => signIn('google', { callbackUrl: '/' })}
-            className="w-full rounded-lg flex items-center justify-center gap-2"
-            style={{
-              padding: '10px 14px',
-              background: '#e8ecf8',
-              color: '#0a0e20',
-              fontSize: 14,
-              fontWeight: 600,
-              border: 0,
-              cursor: 'pointer',
-            }}
-          >
-            Continue with Google
-          </button>
-          <div className="flex items-center gap-3 my-5">
-            <span style={{ flex: 1, height: 1, background: '#1e2749' }} />
-            <span style={{ fontFamily: mono, fontSize: 10, color: '#6b7280' }}>OR</span>
-            <span style={{ flex: 1, height: 1, background: '#1e2749' }} />
-          </div>
-        </>
-      )}
-
-      <form onSubmit={onSubmit} className="space-y-4">
-        {isSignup && (
-          <div>
-            <label style={label} htmlFor="name">Name (optional)</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={field}
-              autoComplete="name"
-            />
-          </div>
+      <div className="panel panel-body auth-card">
+        {googleEnabled && (
+          <>
+            <button type="button" className="btn" style={{ width: '100%', height: 38 }}
+              onClick={() => signIn('google', { callbackUrl: '/' })}>
+              Continue with Google
+            </button>
+            <div className="auth-or"><span>or with email</span></div>
+          </>
         )}
 
-        <div>
-          <label style={label} htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={field}
-            autoComplete="email"
-          />
-        </div>
-
-        <div>
-          <label style={label} htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={field}
-            autoComplete={isSignup ? 'new-password' : 'current-password'}
-            minLength={isSignup ? 12 : undefined}
-          />
+        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 14 }}>
           {isSignup && (
-            <p style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-              At least 12 characters. Length matters more than symbols — a passphrase works well.
-            </p>
+            <div>
+              <label className="field-label" htmlFor="name">Name (optional)</label>
+              <input id="name" className="input" type="text" value={name}
+                onChange={(e) => setName(e.target.value)} autoComplete="name" style={{ width: '100%' }} />
+            </div>
           )}
-        </div>
-
-        {error && (
-          <div
-            className="rounded-lg p-3"
-            style={{ background: '#2a1015', border: '1px solid #5a2028', color: '#ff8a8a', fontSize: 13 }}
-          >
-            {error}
+          <div>
+            <label className="field-label" htmlFor="email">Email</label>
+            <input id="email" className="input" type="email" required value={email}
+              onChange={(e) => setEmail(e.target.value)} autoComplete="email" style={{ width: '100%' }} />
           </div>
-        )}
-
-        {notice && (
-          <div
-            className="rounded-lg p-3"
-            style={{ background: '#10241a', border: '1px solid #1f5a3a', color: '#7fe0a8', fontSize: 13 }}
-          >
-            {notice}
+          <div>
+            <label className="field-label" htmlFor="password">Password</label>
+            <input id="password" className="input" type="password" required value={password}
+              onChange={(e) => setPassword(e.target.value)} style={{ width: '100%' }}
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
+              minLength={isSignup ? 12 : undefined} />
+            {isSignup && (
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                At least 12 characters. Length matters more than symbols; a passphrase works well.
+              </p>
+            )}
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-lg"
-          style={{
-            padding: '10px 14px',
-            background: busy ? '#1a2140' : '#ff4d4d',
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 600,
-            border: 0,
-            cursor: busy ? 'default' : 'pointer',
-          }}
-        >
-          {busy ? 'Working…' : isSignup ? 'Create account' : 'Sign in'}
-        </button>
-      </form>
+          {error && <div className="note note-error" role="alert">{error}</div>}
+          {notice && <div className="note note-ok" role="status">{notice}</div>}
 
-      <p style={{ fontSize: 13, color: '#a0a8c8', marginTop: 20 }}>
+          <button type="submit" className="btn btn-primary" disabled={busy} style={{ height: 38 }}>
+            {busy ? 'Working…' : isSignup ? 'Create account' : 'Sign in'}
+          </button>
+        </form>
+      </div>
+
+      <p style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 16 }}>
         {isSignup ? (
-          <>Already have an account? <Link href="/signin" style={{ color: '#4a9eff' }}>Sign in</Link></>
+          <>Already have an account? <Link href="/signin" className="link">Sign in</Link></>
         ) : (
-          <>No account? <Link href="/signup" style={{ color: '#4a9eff' }}>Create one</Link></>
+          <>No account? <Link href="/signup" className="link">Create one</Link></>
         )}
       </p>
-
-      <p style={{ fontSize: 11, color: '#6b7280', marginTop: 16, lineHeight: 1.6 }}>
-        By creating an account you agree to our{' '}
-        <Link href="/privacy" style={{ color: '#4a9eff' }}>Privacy Policy</Link>.
+      <p className="muted" style={{ fontSize: 12, marginTop: 8, lineHeight: 1.6 }}>
+        Creating an account means you accept the <Link href="/privacy" className="link">privacy policy</Link>.
       </p>
     </div>
   );

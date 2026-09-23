@@ -1,27 +1,33 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { MeshPhongMaterial } from 'three';
 import type { Outbreak } from '@/lib/types';
+import {
+  NO_RECORD_COLOR,
+  SEVERITY_COLOR,
+  SEVERITY_LABEL,
+  SEVERITY_ORDER,
+  SEVERITY_RULE,
+  severityColor,
+  withAlpha,
+} from '@/lib/severity';
 import { CountryTooltip } from './CountryTooltip';
 
-// Country polygon fill colors by threat level
-const POLY_COLOR: Record<string, string> = {
-  CRITICAL: 'rgba(220,38,38,0.85)',
-  HIGH:     'rgba(234,88,12,0.75)',
-  MEDIUM:   'rgba(202,138,4,0.65)',
-  LOW:      'rgba(22,163,74,0.55)',
-};
-const POLY_NONE    = 'rgba(71,85,105,0.5)';   // Neutral slate gray — all countries visible
-const POLY_HOVER   = 'rgba(148,163,184,0.55)'; // Light slate on hover
+// Fills come from the shared scale in lib/severity.ts, so the globe, badges,
+// tables and charts can never disagree about what a colour means. Near-opaque
+// fills keep the validated colours true on screen; translucency over a
+// textured globe previously shifted them.
+const POLY_NONE    = NO_RECORD_COLOR;
+const POLY_HOVER   = '#5a5a56';
+const BORDER_NONE  = '#383835';
+const BORDER_HOVER = '#f5f4f0';
 
-const BORDER_COLOR: Record<string, string> = {
-  CRITICAL: 'rgba(220,38,38,0.6)',
-  HIGH:     'rgba(234,88,12,0.5)',
-  MEDIUM:   'rgba(202,138,4,0.4)',
-  LOW:      'rgba(22,163,74,0.35)',
-};
-const BORDER_NONE  = 'rgba(71,85,105,0.35)';
-const BORDER_HOVER = 'rgba(255,255,255,0.9)';
+const polyColor = (threat: string) => withAlpha(severityColor(threat), 0.92);
+
+// A flat, unlit-looking globe: the photographic night-earth texture and star
+// backdrop read as decoration and competed with the data layer.
+const GLOBE_MATERIAL = new MeshPhongMaterial({ color: '#141413', shininess: 0 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GeoFeature = { type: string; properties: Record<string, any>; geometry: object };
@@ -66,7 +72,10 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
       .catch(() => setCountryMap({}));
   }, []);
 
-  // Responsive sizing — adapts to container height
+  // Responsive sizing. Re-attaches when the globe finishes loading: the ref
+  // first points at the loading placeholder, which is then replaced, so an
+  // observer set up only once kept watching a detached node and later resizes
+  // never reached the globe.
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver(([entry]) => {
@@ -75,16 +84,27 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
     ro.observe(containerRef.current);
     setDims({ w: containerRef.current.clientWidth, h: containerRef.current.clientHeight || 640 });
     return () => ro.disconnect();
-  }, []);
+  }, [GlobeComp]);
 
   const onGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
     const ctrl = globeRef.current.controls();
     ctrl.autoRotate      = true;
-    ctrl.autoRotateSpeed = 0.35;
+    ctrl.autoRotateSpeed = 0.25;
     ctrl.enableDamping   = true;
     ctrl.dampingFactor   = 0.08;
+    // The globe now sits mid-page, so wheel-zoom captured page scrolling: a
+    // reader scrolling past the map got stuck zooming it. Zoom is on explicit
+    // buttons instead, the usual pattern for an embedded map.
+    ctrl.enableZoom      = false;
     globeRef.current.pointOfView({ lat: 20, lng: 10, altitude: 2.2 }, 0);
+  }, []);
+
+  const zoom = useCallback((factor: number) => {
+    if (!globeRef.current) return;
+    const pov = globeRef.current.pointOfView();
+    const altitude = Math.min(3.5, Math.max(0.6, pov.altitude * factor));
+    globeRef.current.pointOfView({ ...pov, altitude }, 300);
   }, []);
 
   // Resolve threat level for a GeoJSON feature by matching ADMIN name to DB country names
@@ -116,23 +136,12 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
     })
     .map((o) => ({ disease: o.disease, severity: o.severity, cases: o.cases, deaths: o.deaths }));
 
-  const criticalCount = outbreaks.filter((o) => o.severity === 'CRITICAL').length;
-
   const loader = (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%', minHeight: 400, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: '100%', height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: 40, height: 40, border: '2px solid #dc2626', borderTopColor: 'transparent',
-          borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
-        }} />
-        <p style={{ color: '#94a3b8', fontSize: 12, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.1em' }}>
-          INITIALIZING GLOBE…
-        </p>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <p style={{ color: 'var(--ink-3)', fontSize: 13 }}>Loading map…</p>
     </div>
   );
 
@@ -141,18 +150,16 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
   return (
     <div
       ref={containerRef}
-      style={{ position: 'relative', width: '100%', overflow: 'hidden', background: '#000', height: '100%', minHeight: 400 }}
+      style={{ position: 'relative', width: '100%', overflow: 'hidden', height: '100%', minHeight: 400 }}
     >
       <GlobeComp
         ref={globeRef}
         width={dims.w}
         height={dims.h}
 
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-        backgroundColor="rgba(0,0,0,1)"
-        atmosphereColor="#1a3a6a"
-        atmosphereAltitude={0.18}
+        globeMaterial={GLOBE_MATERIAL}
+        backgroundColor="rgba(0,0,0,0)"
+        showAtmosphere={false}
 
         // ── Country Polygons (sole visualization layer) ───────────────────
         polygonsData={countries}
@@ -160,14 +167,14 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
           const isHovered = hoveredCountry?.properties?.ADMIN === feat.properties?.ADMIN;
           if (isHovered) return POLY_HOVER;
           const threat = getCountryThreat(feat);
-          return threat ? POLY_COLOR[threat] : POLY_NONE;
+          return threat ? polyColor(threat) : POLY_NONE;
         }}
         polygonSideColor={() => 'rgba(0,0,0,0)'}
         polygonStrokeColor={(feat: GeoFeature) => {
           const isHovered = hoveredCountry?.properties?.ADMIN === feat.properties?.ADMIN;
           if (isHovered) return BORDER_HOVER;
           const threat = getCountryThreat(feat);
-          return threat ? (BORDER_COLOR[threat] ?? BORDER_NONE) : BORDER_NONE;
+          return threat ? '#1a1a19' : BORDER_NONE;
         }}
         polygonAltitude={(feat: GeoFeature) => {
           const isHovered = hoveredCountry?.properties?.ADMIN === feat.properties?.ADMIN;
@@ -251,81 +258,30 @@ export default function Globe3D({ outbreaks, onSelect }: Props) {
         </div>
       )}
 
-      {/* Legend — bottom left */}
-      <div style={{
-        position: 'absolute', bottom: 20, left: 16, zIndex: 10,
-        background: 'rgba(10,14,39,0.92)', backdropFilter: 'blur(8px)',
-        border: '1px solid #1e2749', borderRadius: 10, padding: '10px 14px',
-      }}>
-        <div style={{
-          fontSize: 9, color: '#6b7280', fontFamily: 'var(--font-mono, monospace)',
-          fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
-        }}>
-          Threat Level
-        </div>
-        {([
-          ['CRITICAL',    '#dc2626', '>10K cases' ],
-          ['HIGH',        '#ea580c', '>1K cases'  ],
-          ['MEDIUM',      '#ca8a04', '>100 cases' ],
-          ['LOW',         '#16a34a', '<100 cases' ],
-          ['No Outbreaks','#475569', ''           ],
-        ] as const).map(([label, color, hint]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <span style={{
-              display: 'inline-block', width: 14, height: 10, borderRadius: 2,
-              background: color, flexShrink: 0,
-            }} />
-            <span style={{ fontSize: 10, color: '#a0a8c8', fontFamily: 'var(--font-mono, monospace)', fontWeight: 600, minWidth: 80 }}>
-              {label}
+      {/* Legend. Each level states its full rule — severity triggers on cases
+          OR deaths, which the old case-only legend misdescribed. */}
+      <div className="globe-legend">
+        {SEVERITY_ORDER.map((lvl) => (
+          <div key={lvl} className="globe-legend-row">
+            <span className="sev" style={{ ['--sev-color' as string]: SEVERITY_COLOR[lvl] }}>
+              {SEVERITY_LABEL[lvl]}
             </span>
-            {hint && <span style={{ fontSize: 10, color: '#6b7280' }}>{hint}</span>}
+            <span className="globe-legend-rule">{SEVERITY_RULE[lvl]}</span>
           </div>
         ))}
-      </div>
-
-      {/* Stats badge — top right */}
-      {!activeCountry && (
-        <div style={{
-          position: 'absolute', top: 16, right: 16, zIndex: 10,
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
-        }}>
-          <div style={{
-            background: 'rgba(10,14,39,0.92)', backdropFilter: 'blur(8px)',
-            border: '1px solid #1e2749', borderRadius: 8, padding: '6px 12px',
-          }}>
-            <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono, monospace)' }}>
-              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 14 }}>{outbreaks.length}</span> active outbreaks
-            </span>
-          </div>
-          {criticalCount > 0 && (
-            <div style={{
-              background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
-              borderRadius: 8, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
-                <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#dc2626', opacity: 0.75, animation: 'ping 1s infinite' }} />
-                <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-              </span>
-              <span style={{ fontSize: 11, color: '#dc2626', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
-                {criticalCount} CRITICAL
-              </span>
-            </div>
-          )}
+        <div className="globe-legend-row">
+          <span className="sev" style={{ ['--sev-color' as string]: NO_RECORD_COLOR }}>No record</span>
         </div>
-      )}
-
-      {/* Drag hint */}
-      <div style={{
-        position: 'absolute', bottom: 20, right: 16, zIndex: 10,
-        fontSize: 10, color: '#6b7280', fontFamily: 'var(--font-mono, monospace)',
-        pointerEvents: 'none',
-      }}>
-        {hoveredCountry ? 'click for details' : 'drag to rotate · scroll to zoom'}
       </div>
 
-      <style>{`
-        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-      `}</style>
+      <div className="globe-zoom" role="group" aria-label="Map zoom">
+        <button type="button" className="btn" onClick={() => zoom(0.75)} aria-label="Zoom in">+</button>
+        <button type="button" className="btn" onClick={() => zoom(1.33)} aria-label="Zoom out">−</button>
+      </div>
+
+      <div className="globe-hint">
+        {hoveredCountry ? 'Click a country for its records' : 'Drag to rotate'}
+      </div>
     </div>
   );
 }

@@ -9,12 +9,23 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get('url');
 
-  if (!url || !url.startsWith('https://news.google.com/')) {
+  // This endpoint fetches a caller-supplied URL server-side, so the host must be
+  // pinned. The hostname is parsed rather than prefix-matched, and redirects
+  // are refused: a string prefix only constrains the first hop, and axios
+  // follows redirects by default.
+  let parsed: URL;
+  try {
+    parsed = new URL(url ?? '');
+  } catch {
+    return NextResponse.json({ articles: [] }, { status: 400 });
+  }
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'news.google.com') {
     return NextResponse.json({ articles: [] }, { status: 400 });
   }
 
   try {
-    const res = await axios.get(url, {
+    const res = await axios.get(parsed.toString(), {
+      maxRedirects: 0,
       timeout: 8000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; EpiWatch/2.0)',

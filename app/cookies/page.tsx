@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 
 export const metadata = {
-  title: 'Cookie Policy | EPI-WATCH',
+  title: 'Cookie policy | Epi-watch',
   description: 'Which cookies Epi-watch sets, why, and why there is no cookie banner.',
 };
 
@@ -13,10 +13,10 @@ export default function CookiesPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 py-14 legal">
-          <h1 className="text-4xl font-bold mb-2">Cookie Policy</h1>
-          <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 28 }}>
+      <main>
+        <article className="page legal legal-page">
+          <h1 className="page-title">Cookie policy</h1>
+          <p className="muted" style={{ fontSize: 13, margin: '6px 0 28px' }}>
             Last updated {LAST_UPDATED}
           </p>
 
@@ -95,7 +95,7 @@ export default function CookiesPage() {
             outbreak data, news and video — works fully without an account and without them.
           </p>
 
-          <p style={{ marginTop: 32, fontSize: 13, color: '#6b7280' }}>
+          <p className="muted" style={{ marginTop: 32, fontSize: 13 }}>
             See also our <Link href="/privacy">Privacy Policy</Link> and{' '}
             <Link href="/faq">FAQ</Link>.
           </p>

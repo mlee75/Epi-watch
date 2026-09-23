@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 
 export const metadata = {
-  title: 'FAQ | EPI-WATCH',
+  title: 'Methodology and FAQ | Epi-watch',
   description:
     'Where Epi-watch data comes from, what "verified" means, how the travel score works, and what the numbers do and do not tell you.',
 };
@@ -24,19 +24,20 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
             Two paths. A curated seed set of 39 records compiled from WHO, CDC, PAHO,
             UKHSA and UNICEF reporting, and a daily automated ingest at 06:00 UTC that
             reads the CDC outbreaks feed, Outbreak News Today, and a Google News outbreak
-            query. Automatically ingested records are flagged{' '}
-            <strong>UNVERIFIED</strong> in the interface.
+            query. Automatically ingested records are labelled{' '}
+            <strong>Automated</strong> in tables and &ldquo;Automated, not reviewed&rdquo; in
+            record details.
           </>
         ),
       },
       {
-        q: 'What does the UNVERIFIED badge mean?',
+        q: 'What is the difference between Curated and Automated records?',
         a: (
           <>
             That the record came from the automated ingest and no human has checked it. It
             is a real published report, but the disease, country and figures were extracted
-            from a headline by software, which can be wrong. Records without the badge come
-            from the curated set.
+            from a headline by software, which can be wrong. Curated records were entered
+            from agency reporting. Neither label is an independent verification.
           </>
         ),
       },
@@ -55,7 +56,7 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         q: 'How current is the data?',
         a: (
           <>
-            The ingest runs daily at 06:00 UTC, and the stats bar shows when data was last
+            The ingest runs daily at 06:00 UTC, and the header shows when data was last
             updated. An automated health check runs every day at 08:00 UTC and flags it if
             an ingestion cycle is missed.
           </>
@@ -73,28 +74,50 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
           </>
         ),
       },
+      {
+        q: 'Is each record a separate outbreak?',
+        a: (
+          <>
+            Not necessarily. A record is one published report. The automated ingest can
+            create a new record each day a story about the same event is published, and it
+            does not yet merge spellings of the same country (for example
+            &ldquo;DRC&rdquo; and &ldquo;Democratic Republic of Congo&rdquo;). Counts on the
+            overview are counts of records, and should be read that way.
+          </>
+        ),
+      },
+      {
+        q: 'What do the publisher types on the news page mean?',
+        a: (
+          <>
+            They describe who published an article, judged from the publisher&rsquo;s name:
+            Health agency (for example WHO, CDC, a ministry of health), Field organisation
+            (for example ProMED, MSF, ReliefWeb) and Media (everything else). A news article
+            that quotes WHO is still Media.
+          </>
+        ),
+      },
     ],
   },
   {
     heading: 'Video and live TV',
     items: [
       {
-        q: 'What does "verified video" actually mean?',
+        q: 'How are videos chosen?',
         a: (
           <>
-            One narrow thing: the video was published by a channel on an explicit
-            allowlist, and every channel on that list belongs to a named health authority
-            or news organisation. It attests to <strong>who published it</strong> — it is
+            Only channels on a fixed list are collected, and every channel on that list
+            belongs to a named health agency or news organisation. It attests to <strong>who published it</strong> — it is
             not a fact-check of the contents. Nothing is pulled from open search.
           </>
         ),
       },
       {
-        q: 'What is the difference between the OFFICIAL and NEWS badges?',
+        q: 'What is the difference between the Agency and News labels?',
         a: (
           <>
-            OFFICIAL means a public health body such as WHO, CDC or PAHO — official
-            guidance. NEWS means an established newsroom such as Reuters or Al Jazeera —
+            Agency means a public health body such as WHO, CDC or PAHO — official
+            guidance. News means an established newsroom such as Reuters or Al Jazeera —
             journalism, not guidance. They are kept visibly separate so a news segment is
             never mistaken for an official position.
           </>
@@ -158,7 +181,8 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         a: (
           <>
             No. The globe, outbreak feed, news, video and travel tool all work fully
-            without one. An account only adds a saved watchlist.
+            without one. Accounts are there for a saved watchlist of diseases and countries,
+            which is not built yet.
           </>
         ),
       },
@@ -240,35 +264,22 @@ export default function FaqPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 py-14 legal">
-          <h1 className="text-4xl font-bold mb-3">Frequently Asked Questions</h1>
-          <p style={{ color: '#a0a8c8', marginBottom: 32, lineHeight: 1.7 }}>
-            What the data is, where it comes from, and — just as importantly — what it does
-            not tell you.
-          </p>
+      <main>
+        <article className="page legal legal-page">
+          <header className="page-head">
+            <h1 className="page-title">Methodology and FAQ</h1>
+            <p className="page-lede">
+              What the data is, where it comes from, and what it does not tell you.
+            </p>
+          </header>
 
           {SECTIONS.map((section) => (
-            <section key={section.heading} className="mb-10">
+            <section key={section.heading} style={{ marginBottom: 36 }}>
               <h2>{section.heading}</h2>
               {section.items.map((item) => (
-                <details
-                  key={item.q}
-                  className="rounded-lg mb-2"
-                  style={{ background: '#0d1129', border: '1px solid #1e2749' }}
-                >
-                  <summary
-                    className="px-4 py-3"
-                    style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14, color: '#e8ecf8' }}
-                  >
-                    {item.q}
-                  </summary>
-                  <div
-                    className="px-4 pb-4"
-                    style={{ fontSize: 13.5, color: '#a0a8c8', lineHeight: 1.7 }}
-                  >
-                    {item.a}
-                  </div>
+                <details key={item.q}>
+                  <summary>{item.q}</summary>
+                  <div>{item.a}</div>
                 </details>
               ))}
             </section>

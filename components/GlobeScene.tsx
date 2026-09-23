@@ -7,15 +7,16 @@ import type { Outbreak } from '@/lib/types';
 
 interface Props {
   outbreaks: Outbreak[];
+  aiEnabled?: boolean;
 }
 
-export default function GlobeScene({ outbreaks }: Props) {
+export default function GlobeScene({ outbreaks, aiEnabled = false }: Props) {
   const [selected, setSelected] = useState<Outbreak | null>(null);
 
   return (
     <>
       <Globe3D outbreaks={outbreaks} onSelect={setSelected} />
-      <OutbreakDetailPanel outbreak={selected} onClose={() => setSelected(null)} />
+      <OutbreakDetailPanel outbreak={selected} onClose={() => setSelected(null)} aiEnabled={aiEnabled} />
     </>
   );
 }

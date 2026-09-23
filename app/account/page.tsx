@@ -6,7 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AccountPanel } from './AccountPanel';
 
-export const metadata = { title: 'Your account | EPI-WATCH' };
+export const metadata = { title: 'Your account | Epi-watch' };
 
 // Reads the signed-in user, so it must never be prerendered or cached.
 export const dynamic = 'force-dynamic';
@@ -34,7 +34,7 @@ export default async function AccountPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
+      <main>
         <AccountPanel
           email={user.email}
           name={user.name}

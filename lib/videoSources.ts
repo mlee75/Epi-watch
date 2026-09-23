@@ -193,7 +193,7 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   },
   {
     region: 'EMRO',
-    label: 'Mid. East',
+    label: 'Middle East',
     channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg',
     channelName: 'Al Jazeera English',
     language: 'en',
@@ -207,7 +207,7 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   },
   {
     region: 'WPRO',
-    label: 'Asia-Pac.',
+    label: 'Asia-Pacific',
     channelId: 'UCSPEjw8F2nQDtmUKPFNF7_A',
     channelName: 'NHK WORLD-JAPAN',
     language: 'en',

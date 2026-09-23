@@ -20,31 +20,10 @@ export async function GET(
       return NextResponse.json({ error: 'Outbreak not found' }, { status: 404 });
     }
 
-    // If no sources in DB yet, synthesize one from the outbreak's own fields
-    let sources = outbreak.sources;
-    if (sources.length === 0) {
-      sources = [
-        {
-          id: `synthetic-${outbreak.id}`,
-          outbreakId: outbreak.id,
-          sourceName: outbreak.sourceName,
-          sourceType: 'news',
-          sourceLanguage: outbreak.language,
-          sourceCountry: null,
-          articleTitle: outbreak.titleOrig ?? `${outbreak.disease} — ${outbreak.country}`,
-          articleUrl: outbreak.sourceUrl,
-          articleExcerpt: outbreak.summary ?? null,
-          publishedAt: outbreak.reportDate,
-          scrapedAt: outbreak.createdAt,
-          reliabilityScore: 3,
-          isVerified: outbreak.verified,
-          verifiedBy: outbreak.verified ? outbreak.sourceName : null,
-          originalText: null,
-          translatedText: null,
-          author: null,
-        },
-      ];
-    }
+    // No synthetic fallback. It used to fabricate a source from the record's
+    // own fields, typed as "news" with a default reliability of 3, even for WHO
+    // reports. The record's primary source is already shown by the client.
+    const sources = outbreak.sources;
 
     const serialized: OutbreakSource[] = sources.map((s) => ({
       ...s,

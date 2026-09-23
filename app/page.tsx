@@ -1,28 +1,23 @@
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { Header } from '@/components/Header';
 import { LiveTvPanel } from '@/components/LiveTvPanel';
-import { HowItWorks } from '@/components/HowItWorks';
 import { Footer } from '@/components/Footer';
+import { SeverityBadge } from '@/components/SeverityBadge';
+import { RegionBars, type RegionRow } from '@/components/dashboard/RegionBars';
 import TravelRiskCalculator from '@/components/TravelRiskCalculator';
 import prisma from '@/lib/db';
 import type { Outbreak, OutbreakStats } from '@/lib/types';
-
-const fmtNum = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+import { SEVERITY_ORDER, SEVERITY_RULE, normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
+import { fmtCount, fmtDate, fmtDateShort, fmtNumber, regionLabel } from '@/lib/format';
 
 // 3D Globe — dynamically imported, browser-only (Three.js requires window)
 const GlobeScene = dynamic(() => import('@/components/GlobeScene'), {
   ssr: false,
   loading: () => (
-    <div
-      className="w-full h-full flex items-center justify-center bg-black"
-    >
-      <div className="text-center">
-        <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-slate-400 text-sm font-mono tracking-widest">
-          INITIALIZING GLOBE…
-        </p>
-      </div>
+    <div className="w-full h-full flex items-center justify-center">
+      <p className="muted" style={{ fontSize: 13 }}>Loading map…</p>
     </div>
   ),
 });
@@ -129,215 +124,257 @@ async function getInitialData(): Promise<{
 
 export const revalidate = 300;
 
+/** Records per WHO region, stacked by severity; largest region first. */
+function buildRegionRows(outbreaks: Outbreak[]): RegionRow[] {
+  const byRegion = new Map<string, Record<SeverityLevel, number>>();
+  for (const o of outbreaks) {
+    const code = o.region || 'OTHER';
+    const counts = byRegion.get(code) ?? { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    counts[normalizeSeverity(o.severity)] += 1;
+    byRegion.set(code, counts);
+  }
+  return Array.from(byRegion.entries())
+    .map(([code, counts]) => ({
+      code,
+      label: regionLabel(code),
+      counts,
+      total: SEVERITY_ORDER.reduce((n, l) => n + counts[l], 0),
+    }))
+    // The unattributed bucket goes last whatever its size, so it cannot
+    // present itself as the region with the most outbreaks.
+    .sort((a, b) => (a.code === 'OTHER' ? 1 : b.code === 'OTHER' ? -1 : b.total - a.total));
+}
+
 export default async function HomePage() {
   const { outbreaks, stats } = await getInitialData();
+
+  const curated = outbreaks.filter((o) => o.verified).length;
+  const automated = outbreaks.length - curated;
+  const unreported = outbreaks.filter((o) => !o.cases).length;
+  const withFigures = outbreaks.length - unreported;
+  const recent30 = outbreaks.filter(
+    (o) => Date.now() - new Date(o.createdAt).getTime() < 30 * 86_400_000
+  ).length;
+
+  // Ranked by severity, then reported cases. Records with no reported figures
+  // sink to the bottom of their level rather than tying with real counts.
+  const ranked = [...outbreaks]
+    .sort((a, b) => severityRank(a.severity) - severityRank(b.severity) || (b.cases ?? 0) - (a.cases ?? 0))
+    .slice(0, 12);
+
+  const recent = [...outbreaks]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
+  const regionRows = buildRegionRows(outbreaks);
 
   return (
     <div className="min-h-screen">
       <Header />
 
-      <main>
-        {/* ═══════════════════════════════════════════════════════════════════
-            FULL-SCREEN GLOBE HERO
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section id="map" className="relative w-full" style={{ height: '100vh' }}>
+      <main className="page">
+        <header className="page-head">
+          <h1 className="page-title">Global outbreak overview</h1>
+          <p className="page-lede">
+            {fmtNumber(stats.total)} outbreak records across {stats.countriesAffected} countries.{' '}
+            {curated} are curated from WHO, CDC, PAHO, UKHSA and UNICEF reporting; {automated}{' '}
+            come from a daily automated scan of news and agency feeds and have not been reviewed.
+            Records are reports, not confirmed distinct outbreaks — the same event can appear more
+            than once.
+          </p>
+        </header>
 
-          {/* Globe fills entire viewport */}
-          <div className="absolute inset-0">
-            <Suspense>
-              <GlobeScene outbreaks={outbreaks} />
-            </Suspense>
+        {/* Headline figures. Each tile says what it counts; sums of reported
+            figures state how many records reported nothing. */}
+        <section className="kpi-row" aria-label="Headline figures">
+          <div className="kpi">
+            <div className="kpi-label">Records</div>
+            <div className="kpi-value">{fmtNumber(stats.total)}</div>
+            <div className="kpi-note">{curated} curated · {automated} automated</div>
           </div>
-
-          {/* Gradient fade at top for header readability */}
-          <div
-            className="absolute top-0 left-0 right-0 pointer-events-none"
-            style={{ height: 120, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)' }}
-          />
-
-          {/* ── Live regional news — top-left overlay ──────────────────── */}
-          <LiveTvPanel />
-
-          {/* ── Compact Stats Bar — bottom overlay ─────────────────────── */}
-          <div className="absolute bottom-0 left-0 right-0 z-10">
-            <div style={{
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              <div className="max-w-screen-2xl mx-auto px-6 lg:px-8 py-4">
-                <div className="flex items-center justify-between">
-
-                  {/* Live indicator + updated time */}
-                  <div className="flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                      <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
-                        <span className="animate-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#ef4444', opacity: 0.75 }} />
-                        <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-                      </span>
-                      <span style={{
-                        fontSize: 10, color: 'rgba(255,255,255,0.5)',
-                        fontFamily: 'var(--font-mono), monospace',
-                        letterSpacing: '0.12em', textTransform: 'uppercase',
-                      }}>
-                        Live Global Surveillance
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 4, paddingLeft: 20 }}>
-                      Updated {(() => {
-                        const mins = Math.max(1, Math.round((Date.now() - new Date(stats.lastUpdated).getTime()) / 60000));
-                        return mins < 60 ? `${mins} min ago` : `${Math.round(mins / 60)}h ago`;
-                      })()}
-                    </p>
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="flex items-center gap-6 lg:gap-8">
-
-                    {/* Critical */}
-                    <div className="flex items-center gap-3">
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: 'rgba(239,68,68,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          <line x1="12" y1="9" x2="12" y2="13" />
-                          <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
-                          {stats.critical}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Critical</p>
-                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>&gt;10K cases each</p>
-                      </div>
-                    </div>
-
-                    <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.08)' }} />
-
-                    {/* High Risk */}
-                    <div className="flex items-center gap-3">
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: 'rgba(249,115,22,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2">
-                          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                          <polyline points="17 6 23 6 23 12" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
-                          {stats.high}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>High Risk</p>
-                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>&gt;1K cases each</p>
-                      </div>
-                    </div>
-
-                    <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.08)' }} />
-
-                    {/* Active Outbreaks */}
-                    <div className="flex items-center gap-3">
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: 'rgba(96,165,250,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
-                          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
-                          {stats.total}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Active Outbreaks</p>
-                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>All severity levels</p>
-                      </div>
-                    </div>
-
-                    <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.08)' }} />
-
-                    {/* Countries */}
-                    <div className="flex items-center gap-3">
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: 'rgba(168,85,247,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="2" y1="12" x2="22" y2="12" />
-                          <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
-                          {stats.countriesAffected}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Countries</p>
-                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>Worldwide distribution</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Info tooltip */}
-                  <div className="flex-shrink-0 hidden md:block" style={{ position: 'relative' }}>
-                    <div className="group" style={{ cursor: 'pointer' }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="12" y1="16" x2="12" y2="12" />
-                          <line x1="12" y1="8" x2="12.01" y2="8" />
-                        </svg>
-                      </div>
-                      {/* Tooltip on hover */}
-                      <div className="hidden group-hover:block" style={{
-                        position: 'absolute', bottom: '100%', right: 0, marginBottom: 8,
-                        width: 260, padding: '12px 14px',
-                        background: 'rgba(15,23,42,0.95)',
-                        backdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 10,
-                        fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5,
-                      }}>
-                        <p style={{ fontWeight: 600, color: '#fff', marginBottom: 6, fontSize: 11 }}>Severity Thresholds</p>
-                        <p><span style={{ color: '#ef4444', fontWeight: 600 }}>Critical</span> — &gt;10,000 cases or &gt;5% fatality rate</p>
-                        <p><span style={{ color: '#f97316', fontWeight: 600 }}>High</span> — &gt;1,000 cases or &gt;1% fatality rate</p>
-                        <p><span style={{ color: '#eab308', fontWeight: 600 }}>Medium</span> — &gt;100 cases or emerging threat</p>
-                        <p><span style={{ color: '#22c55e', fontWeight: 600 }}>Low</span> — &lt;100 cases, contained</p>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
+          <div className="kpi">
+            <div className="kpi-label">Countries</div>
+            <div className="kpi-value">{stats.countriesAffected}</div>
+            <div className="kpi-note">With at least one record</div>
+          </div>
+          {/* No summed case or death totals: records overlap (one event can be
+              several records) and mix outbreak counts with endemic annual burden,
+              so a sum was dominated by a single malaria record and meant nothing. */}
+          <div className="kpi">
+            <div className="kpi-label">With case figures</div>
+            <div className="kpi-value">{withFigures}</div>
+            <div className="kpi-note">{unreported} records state no case count</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Added in last 30 days</div>
+            <div className="kpi-value">{recent30}</div>
+            <div className="kpi-note">By date first recorded</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Critical severity</div>
+            <div className="kpi-value">{stats.critical}</div>
+            <div className="kpi-note">{SEVERITY_RULE.CRITICAL}</div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            BELOW THE FOLD — detailed content
-        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="home-grid" style={{ marginTop: 20 }}>
+          <section className="panel home-map" aria-labelledby="map-title">
+            <div className="panel-header">
+              <h2 id="map-title" className="panel-title">Map</h2>
+              <span className="panel-meta">Country shading = highest severity on record</span>
+            </div>
+            <div className="home-map-canvas">
+              <Suspense>
+                <GlobeScene outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} />
+              </Suspense>
+              <LiveTvPanel />
+            </div>
+          </section>
 
-        {/* ── Travel Risk Assessment ────────────────────────────────────── */}
+          <section className="panel" aria-labelledby="ranked-title">
+            <div className="panel-header">
+              <h2 id="ranked-title" className="panel-title">Highest severity</h2>
+              <Link href="/outbreaks" className="link" style={{ fontSize: 12.5 }}>All records</Link>
+            </div>
+            <div className="table-wrap">
+              <table className="dt">
+                <thead>
+                  <tr>
+                    <th>Disease · country</th>
+                    <th className="num">Cases</th>
+                    <th className="num">Deaths</th>
+                    <th>Severity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.map((o) => (
+                    <tr key={o.id}>
+                      <td>
+                        {o.disease}
+                        <span className="sub">
+                          {o.country}
+                          {!o.verified && ' · automated'}
+                        </span>
+                      </td>
+                      <td className="num">{fmtCount(o.cases)}</td>
+                      <td className="num">{fmtCount(o.deaths)}</td>
+                      <td><SeverityBadge severity={o.severity} size="sm" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="panel-foot">– means the source stated no figure, not zero.</div>
+          </section>
+        </div>
+
+        <div className="home-grid-2" style={{ marginTop: 20 }}>
+          <section className="panel" aria-labelledby="region-title">
+            <div className="panel-header">
+              <h2 id="region-title" className="panel-title">Records by WHO region</h2>
+              <span className="panel-meta">{fmtNumber(stats.total)} records</span>
+            </div>
+            <div className="panel-body">
+              <RegionBars rows={regionRows} />
+            </div>
+          </section>
+
+          <section className="panel" aria-labelledby="recent-title">
+            <div className="panel-header">
+              <h2 id="recent-title" className="panel-title">Recently added</h2>
+              <span className="panel-meta">Last updated {fmtDate(stats.lastUpdated)}</span>
+            </div>
+            <div className="table-wrap">
+              <table className="dt">
+                <thead>
+                  <tr>
+                    <th>Added</th>
+                    <th>Record</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((o) => (
+                    <tr key={o.id}>
+                      <td className="muted tabular-nums" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(o.createdAt)}</td>
+                      <td>
+                        {o.disease}
+                        <span className="sub">{o.country}</span>
+                      </td>
+                      <td>
+                        <a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="link">
+                          {o.sourceName}
+                        </a>
+                        <span className="sub">{o.verified ? 'Curated' : 'Automated, unreviewed'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
         <TravelRiskCalculator />
 
-        <HowItWorks />
+        <section className="panel" style={{ marginTop: 20 }} aria-labelledby="method-title">
+          <div className="panel-header">
+            <h2 id="method-title" className="panel-title">How the data is built</h2>
+            <Link href="/faq" className="link" style={{ fontSize: 12.5 }}>Full methodology</Link>
+          </div>
+          <div className="panel-body method-grid">
+            <div>
+              <h3>Sources</h3>
+              <p>
+                A curated set of records compiled from WHO, CDC, PAHO, UKHSA and UNICEF
+                reporting, and a daily automated ingest at 06:00 UTC that reads the CDC
+                US outbreaks feed, Outbreak News Today and a Google News outbreak query.
+              </p>
+            </div>
+            <div>
+              <h3>Extraction</h3>
+              <p>
+                Disease, country and figures are read from each headline by pattern matching,
+                not by a model. A figure is recorded only if the headline states it; otherwise
+                it is left blank rather than estimated.
+              </p>
+            </div>
+            <div>
+              <h3>Severity</h3>
+              <p>
+                A mechanical threshold on reported cases or deaths. It is not an
+                epidemiological assessment, and a record with no reported figures shows as Low
+                however serious the underlying event.
+              </p>
+            </div>
+            <div>
+              <h3>Limits</h3>
+              <p>
+                Automated records are news reports and are not deduplicated by event, so one
+                outbreak can appear several times. Treat this as an index of reporting, and
+                use WHO or CDC for decisions.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
       <Footer />
+
+      <style>{`
+        .home-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
+        .home-grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+        .home-map-canvas { position: relative; height: 560px; }
+        @media (max-width: 960px) {
+          .home-grid, .home-grid-2 { grid-template-columns: minmax(0, 1fr); }
+          .home-map-canvas { height: 460px; }
+        }
+        .method-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+        .method-grid h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .method-grid p { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+        @media (max-width: 1000px) { .method-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 560px) { .method-grid { grid-template-columns: minmax(0, 1fr); } }
+      `}</style>
     </div>
   );
 }

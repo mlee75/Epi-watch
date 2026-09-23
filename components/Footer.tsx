@@ -1,130 +1,113 @@
-'use client';
-
 import Link from 'next/link';
+
+/**
+ * The previous footer claimed "Updates every hour via automated scrapers" —
+ * ingestion runs once a day — and "Open source · MIT License", although the
+ * repository carries no licence file. Both are corrected here.
+ */
+
+const REFERENCES: [string, string][] = [
+  ['WHO Disease Outbreak News', 'https://www.who.int/emergencies/disease-outbreak-news'],
+  ['CDC Travel Health Notices', 'https://wwwnc.cdc.gov/travel/notices'],
+  ['ECDC Communicable Disease Threats', 'https://www.ecdc.europa.eu/en/publications-and-data/monitoring/weekly-threats-reports'],
+  ['PAHO Epidemiological Alerts', 'https://www.paho.org/en/epidemiological-alerts-and-updates'],
+];
+
+const SITE: [string, string][] = [
+  ['Outbreaks', '/outbreaks'],
+  ['News', '/news'],
+  ['Video', '/videos'],
+  ['Methodology & FAQ', '/faq'],
+];
+
+const LEGAL: [string, string][] = [
+  ['Privacy', '/privacy'],
+  ['Cookies', '/cookies'],
+];
 
 export function Footer() {
   return (
-    <footer
-      style={{
-        background: 'rgba(2,8,23,0.8)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-      }}
-      className="py-10"
-    >
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
-
-          {/* Brand */}
+    <footer className="site-footer">
+      <div className="page">
+        <div className="site-footer-grid">
           <div>
-            <div style={{
-              fontFamily: 'var(--font-mono), Space Mono, monospace',
-              fontWeight: 700, fontSize: 17, color: '#ffffff',
-              letterSpacing: '0.15em', marginBottom: 10,
-            }}>
-              EPI<span style={{ color: '#ef4444' }}>-</span>WATCH
-            </div>
-            <p style={{ fontSize: 12, color: 'rgba(107,114,128,0.8)', lineHeight: 1.7, maxWidth: 280 }}>
-              Real-time global disease outbreak intelligence. Powered by automated surveillance of
-              official health authority reports.
+            <div className="site-footer-name">Epi-watch</div>
+            <p className="site-footer-text">
+              A public tracker of reported infectious disease outbreaks. It aggregates
+              published reporting and is not a substitute for official guidance — for
+              decisions about your health or travel, consult WHO, CDC or your national
+              health authority.
             </p>
           </div>
 
-          {/* Data Sources */}
           <div>
-            <h4 style={{
-              fontSize: 9, fontWeight: 700, color: 'rgba(148,163,184,0.7)',
-              textTransform: 'uppercase', letterSpacing: '0.12em',
-              fontFamily: 'var(--font-mono), Space Mono, monospace',
-              marginBottom: 14,
-            }}>
-              Data Sources
-            </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                ['WHO Disease Outbreak News', 'https://www.who.int/emergencies/disease-outbreak-news'],
-                ['CDC Outbreak Reports',      'https://www.cdc.gov/outbreaks/index.html'],
-                ['ProMED Mail',               'https://promedmail.org'],
-                ['ECDC Surveillance',         'https://www.ecdc.europa.eu/en/publications-data'],
-              ].map(([label, url]) => (
-                <li key={label}>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: 'rgba(107,114,128,0.8)', textDecoration: 'none', transition: 'color 0.15s' }}
-                    onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = '#60a5fa'; }}
-                    onMouseOut={(e)  => { (e.currentTarget as HTMLElement).style.color = 'rgba(107,114,128,0.8)'; }}
-                  >
-                    {label} ↗
+            <div className="site-footer-h">Primary sources</div>
+            <ul>
+              {REFERENCES.map(([name, url]) => (
+                <li key={url}>
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="link">
+                    {name}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* About */}
           <div>
-            <h4 style={{
-              fontSize: 9, fontWeight: 700, color: 'rgba(148,163,184,0.7)',
-              textTransform: 'uppercase', letterSpacing: '0.12em',
-              fontFamily: 'var(--font-mono), Space Mono, monospace',
-              marginBottom: 14,
-            }}>
-              About
-            </h4>
-            <ul style={{
-              listStyle: 'none', padding: 0, margin: 0,
-              display: 'flex', flexDirection: 'column', gap: 7,
-              fontSize: 12, color: 'rgba(107,114,128,0.8)',
-            }}>
-              <li>Updates every hour via automated scrapers</li>
-              <li>Severity classified by case &amp; death counts</li>
-              <li>Open source · MIT License</li>
-              <li>Built with Next.js, Prisma, Three.js</li>
+            <div className="site-footer-h">Epi-watch</div>
+            <ul>
+              {SITE.map(([name, href]) => (
+                <li key={href}>
+                  <Link href={href} className="link">{name}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <div className="site-footer-h">Data</div>
+            <ul className="site-footer-facts">
+              <li>Automated ingest daily at 06:00 UTC</li>
+              <li>Severity from reported cases and deaths</li>
+              <li>
+                <a href="https://github.com/mlee75/Epi-watch" target="_blank" rel="noopener noreferrer" className="link">
+                  Source code on GitHub
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div style={{
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          paddingTop: 24,
-          display: 'flex', flexWrap: 'wrap',
-          alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        }}>
-          <p style={{
-            fontSize: 11, color: 'rgba(71,85,105,0.8)',
-            fontFamily: 'var(--font-mono), Space Mono, monospace',
-          }}>
-            © {new Date().getFullYear()} Epi-Watch · For informational purposes only
-          </p>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-            {[
-              { href: '/faq', label: 'FAQ' },
-              { href: '/privacy', label: 'Privacy' },
-              { href: '/cookies', label: 'Cookies' },
-            ].map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  fontSize: 11, color: 'rgba(148,163,184,0.9)', textDecoration: 'none',
-                  fontFamily: 'var(--font-mono), Space Mono, monospace',
-                }}
-              >
-                {label}
-              </Link>
+        <div className="site-footer-base">
+          <span>© {new Date().getFullYear()} Epi-watch</span>
+          <span className="site-footer-legal">
+            {LEGAL.map(([name, href]) => (
+              <Link key={href} href={href} className="link">{name}</Link>
             ))}
-            <span style={{
-              fontSize: 11, color: 'rgba(71,85,105,0.8)',
-              fontFamily: 'var(--font-mono), Space Mono, monospace',
-            }}>
-              Data sourced from public health authorities
-            </span>
-          </div>
+          </span>
         </div>
       </div>
+
+      <style>{`
+        .site-footer { margin-top: 64px; border-top: 1px solid var(--hairline); background: var(--page); }
+        .site-footer-grid {
+          display: grid; grid-template-columns: 2fr 1.4fr 1fr 1.2fr; gap: 32px; padding: 36px 0 28px;
+        }
+        @media (max-width: 900px) { .site-footer-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 560px) { .site-footer-grid { grid-template-columns: 1fr; } }
+        .site-footer-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+        .site-footer-text { font-size: 12.5px; color: var(--ink-3); line-height: 1.65; max-width: 380px; }
+        .site-footer-h { font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
+        .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13px; }
+        .site-footer .link { color: var(--ink-2); }
+        .site-footer .link:hover { color: var(--ink-1); }
+        .site-footer-facts li { color: var(--ink-2); }
+        .site-footer-base {
+          display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+          padding: 14px 0 22px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--ink-3);
+        }
+        .site-footer-legal { display: flex; gap: 16px; }
+      `}</style>
     </footer>
   );
 }

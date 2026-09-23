@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 
 export const metadata = {
-  title: 'Privacy Policy | EPI-WATCH',
+  title: 'Privacy policy | Epi-watch',
   description:
     'What Epi-watch collects, why, how long it is kept, and how to delete it.',
 };
@@ -14,10 +14,10 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="pt-14">
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 py-14 legal">
-          <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
-          <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 28 }}>
+      <main>
+        <article className="page legal legal-page">
+          <h1 className="page-title">Privacy policy</h1>
+          <p className="muted" style={{ fontSize: 13, margin: '6px 0 28px' }}>
             Last updated {LAST_UPDATED}
           </p>
 
@@ -167,7 +167,7 @@ export default function PrivacyPage() {
             .
           </p>
 
-          <p style={{ marginTop: 32, fontSize: 13, color: '#6b7280' }}>
+          <p className="muted" style={{ marginTop: 32, fontSize: 13 }}>
             See also our <Link href="/cookies">Cookie Policy</Link> and{' '}
             <Link href="/faq">FAQ</Link>.
           </p>
