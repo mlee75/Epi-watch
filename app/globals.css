@@ -66,7 +66,7 @@ a { color: inherit; }
 @media (max-width: 640px) { .page { padding: 0 16px; } }
 
 .page-head { padding: 32px 0 20px; border-bottom: 1px solid var(--hairline); margin-bottom: 24px; }
-.page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+.page-title { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; }
 .page-lede { margin-top: 8px; max-width: 760px; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
 
 .section-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -100,7 +100,7 @@ a { color: inherit; }
 .kpi { padding: 14px 16px; border-left: 1px solid var(--hairline); min-width: 0; }
 .kpi:first-child { border-left: 0; }
 .kpi-label { font-size: 12px; color: var(--ink-3); }
-.kpi-value { margin-top: 4px; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; }
+.kpi-value { margin-top: 4px; font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .kpi-note { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
 /* Five tiles hold one row down to 900px; below that, two columns with the
    last tile spanning, so no row ends in an empty cell. */
@@ -691,33 +691,119 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
 }
 
 /* ── Entry screen (components/IntroGate.tsx) ──── */
+/* Opaque and editorial: left-aligned, one text idea at a time, no stacked
+   eyebrow/headline/subline poster. */
 .gate {
-  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
-  /* A scrim, not a blur: the rotating globe stays visible behind the quote. */
-  background: radial-gradient(ellipse at center, rgba(13, 13, 13, 0.8) 0%, rgba(13, 13, 13, 0.93) 60%, #0d0d0d 100%);
-  transition: opacity 0.7s ease, visibility 0.7s;
+  position: fixed; inset: 0; z-index: 100; background: var(--page);
+  display: grid; grid-template-rows: auto 1fr; padding: 28px clamp(20px, 6vw, 88px) clamp(28px, 6vh, 64px);
+  transition: opacity var(--dur-exit) var(--ease-in-out), visibility var(--dur-exit);
 }
 .gate.is-leaving { opacity: 0; visibility: hidden; }
 .gate-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.gate-inner {
-  position: relative; max-width: 720px; text-align: center; display: grid; justify-items: center; gap: 28px;
-  opacity: 0; transform: translateY(8px); transition: opacity 0.9s ease, transform 0.9s ease;
+.gate-mark {
+  position: relative; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--ink-1);
+  animation: settle var(--dur-in) var(--ease-out-expo) both 100ms;
 }
-.gate-inner.is-visible { opacity: 1; transform: none; }
-.gate-mark { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; color: var(--ink-1); }
-.gate-quote { margin: 0; display: grid; gap: 16px; }
-.gate-quote blockquote {
-  margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(22px, 3.4vw, 34px);
-  line-height: 1.35; color: var(--ink-1); font-weight: 400; text-wrap: balance;
+.gate-body { position: relative; align-self: end; max-width: 980px; display: grid; gap: 28px; }
+.gate-quote {
+  margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: 400;
+  font-size: clamp(28px, 4.6vw, 58px); line-height: 1.16; letter-spacing: -0.01em; color: var(--ink-1); text-wrap: balance;
 }
-.gate-quote figcaption { display: grid; gap: 2px; }
-.gate-author { font-size: 14px; color: var(--ink-1); font-weight: 500; }
-.gate-source { font-size: 12.5px; color: var(--ink-3); }
-.gate-purpose { font-size: 14px; color: var(--ink-2); max-width: 460px; line-height: 1.6; margin: 0; }
-.gate-enter { height: 42px; padding: 0 22px; font-size: 14px; }
+.gate-word { display: inline-block; white-space: pre; animation: word-in 600ms var(--ease-out-expo) both; }
+.gate-cite { margin: 0; display: grid; gap: 2px; }
+.gate-author { font-size: 15px; color: var(--ink-1); font-weight: 500; }
+.gate-source { font-size: 13px; color: var(--ink-3); }
+.gate-foot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px;
+  padding-top: 24px; border-top: 1px solid var(--hairline);
+}
+.gate-purpose { font-size: 14px; color: var(--ink-2); max-width: 440px; line-height: 1.6; margin: 0; }
+.gate-enter { height: 44px; padding: 0 22px; font-size: 14px; gap: 10px; }
+.gate-enter span { transition: transform 240ms var(--ease-out-expo); }
+.gate-enter:hover span { transform: translateX(3px); }
+.gate-settle { animation: settle var(--dur-in) var(--ease-out-expo) both; }
 .gate-skip { all: unset; cursor: pointer; position: absolute; right: 20px; bottom: 20px; font-size: 12.5px; color: var(--ink-2); }
-@media (prefers-reduced-motion: reduce) { .gate, .gate-inner { transition: none; } }
 
 /* Globe-first homepage: the map is the page's first and largest element. */
 .home-hero { margin-top: 12px; }
 @media (min-width: 1001px) { .home-hero .lm-panel { max-height: max(560px, calc(100vh - 150px)); } }
+
+/* ── Motion system ─────────────────────────────────────────────────────────
+   Timings and curves follow Raylight's measured craft rules (from its design
+   guide): arrivals settle in (fade + small rise + scale from ~0.985) over
+   500-700ms and start fast, ease-out; siblings cascade 40-300ms apart; exits
+   are faster than entrances; no bounce; one focal point at a time. Reveals are
+   driven by components/motion/MotionRoot.tsx, which marks elements
+   [data-in] as they scroll into view. Everything is off under
+   prefers-reduced-motion (see the global rule near the top). */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in-expo: cubic-bezier(0.7, 0, 0.84, 0);
+  --dur-in: 640ms;
+  --dur-exit: 420ms;
+}
+@keyframes settle { from { opacity: 0; transform: translateY(12px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes word-in { from { opacity: 0; transform: translateY(0.35em); } to { opacity: 1; transform: none; } }
+
+/* Settle-in on scroll. Hidden only when JS runs (html.js), so the page is
+   never blank without it; the final state is transform: none so fixed-position
+   children (drawers, modals) are not trapped. */
+html.js :is(.page-head, .kpi-row, .panel, .ob-toolbar, .ob-summary, .dx-list):not([data-in]) {
+  opacity: 0; transform: translateY(14px) scale(0.985);
+}
+:is(.page-head, .kpi-row, .panel, .ob-toolbar, .ob-summary, .dx-list) {
+  transition: opacity 560ms var(--ease-out-expo) var(--rv-delay, 0ms), transform 720ms var(--ease-out-expo) var(--rv-delay, 0ms);
+}
+
+/* KPI tiles cascade inside their row. */
+html.js .kpi-row:not([data-in]) .kpi { opacity: 0; transform: translateY(8px); }
+.kpi { transition: opacity 500ms var(--ease-out-expo), transform 600ms var(--ease-out-expo); }
+.kpi:nth-child(2) { transition-delay: 70ms; } .kpi:nth-child(3) { transition-delay: 140ms; }
+.kpi:nth-child(4) { transition-delay: 210ms; } .kpi:nth-child(5) { transition-delay: 280ms; }
+
+/* Line charts draw in left to right once their panel is in view. */
+.lc-plot svg { clip-path: inset(0 0 0 0); transition: clip-path 1200ms var(--ease-in-out) 200ms; }
+html.js .panel:not([data-in]) .lc-plot svg { clip-path: inset(0 100% 0 0); }
+
+/* Region bars grow from the axis, one row after another. */
+.rb-bar { transform-origin: left center; transition: transform 800ms var(--ease-out-expo); }
+html.js .panel:not([data-in]) .rb-bar { transform: scaleX(0); }
+.rb-row:nth-child(2) .rb-bar { transition-delay: 60ms; } .rb-row:nth-child(3) .rb-bar { transition-delay: 120ms; }
+.rb-row:nth-child(4) .rb-bar { transition-delay: 180ms; } .rb-row:nth-child(5) .rb-bar { transition-delay: 240ms; }
+.rb-row:nth-child(6) .rb-bar { transition-delay: 300ms; } .rb-row:nth-child(7) .rb-bar { transition-delay: 360ms; }
+
+/* Lists cascade in when they mount (first dozen items, 45ms apart). */
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li { animation: settle 520ms var(--ease-out-expo) both; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(n + 13) { animation: none; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(2) { animation-delay: 45ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(3) { animation-delay: 90ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(4) { animation-delay: 135ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(5) { animation-delay: 180ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(6) { animation-delay: 225ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(7) { animation-delay: 270ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(8) { animation-delay: 315ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(9) { animation-delay: 360ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(10) { animation-delay: 405ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(11) { animation-delay: 450ms; }
+:is(.lm-list, .news-list, .dx-items, .ct-news, .dx-reports) > li:nth-child(12) { animation-delay: 495ms; }
+
+/* Floating cards and drawers settle in; the drawer slides from its edge. */
+.ct, .modal { animation: settle 480ms var(--ease-out-expo) both; }
+.modal { animation-name: modal-in; }
+@keyframes modal-in { from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%); } }
+.overlay-backdrop { animation: fade-in 300ms var(--ease-in-out) both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Controls: quick, quiet feedback. */
+.btn, .chip, .link, .site-nav-link, .lm-list button, .dx-items button, .vid-row {
+  transition: background-color 160ms var(--ease-in-out), border-color 160ms var(--ease-in-out), color 160ms var(--ease-in-out), transform 160ms var(--ease-out-expo);
+}
+.btn:active:not(:disabled), .chip:active { transform: scale(0.98); }
+.site-nav-link { position: relative; }
+.site-nav-link::after {
+  content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--ink-1);
+  transform: scaleX(0); transition: transform 360ms var(--ease-out-expo);
+}
+.site-nav-link[aria-current='page']::after { transform: scaleX(1); }
+.site-nav-link[aria-current='page'] { border-bottom-color: transparent; }

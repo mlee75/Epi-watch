@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import './globals.css';
 import { AIChat } from '@/components/AIChat';
 import { Providers } from '@/components/Providers';
+import { MotionRoot } from '@/components/motion/MotionRoot';
 
 // A function rather than a static `metadata` export so Sentry's trace headers
 // can be emitted per-request, linking server traces to browser errors. Next
@@ -34,9 +35,16 @@ const aiEnabled = Boolean(process.env.ANTHROPIC_API_KEY);
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the inline script below adds the "js" class
+    // before React hydrates, so <html>'s class legitimately differs.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Scroll reveals hide content only when JavaScript can reveal it. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body>
         <Providers>
+          <MotionRoot />
           {children}
           {/* The assistant calls the Anthropic API. Without a key every question
               returned "AI service unavailable", so it was a broken control on

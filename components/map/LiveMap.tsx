@@ -11,6 +11,7 @@ import { distanceKm, project } from '@/lib/geo';
 import { normalizeSeverity, severityRank, SEVERITY_LABEL, SEVERITY_ORDER, SEVERITY_RULE, type SeverityLevel } from '@/lib/severity';
 import { CountryTooltip } from '@/components/CountryTooltip';
 import { OutbreakDetailPanel } from '@/components/OutbreakDetailPanel';
+import { ENTER_EVENT } from '@/lib/events';
 import {
   BASEMAP_STYLE, COLOR, COUNTRIES_URL, GDACS_COLOR, SATELLITE_TILES, SEVERITY_FILL, buildCountryIndex, countryCode,
 } from './mapStyle';
@@ -512,6 +513,20 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     };
   }, [ready, autoRotate]);
   useEffect(() => { if (selection) spinning.current = false; }, [selection]);
+
+  // Entering from the quote screen: a camera push-in on the globe (a pull
+  // back to a small globe, then a committed ~1.75x dolly in, ease-out-expo).
+  useEffect(() => {
+    if (!autoRotate) return;
+    const onEnter = () => {
+      const map = mapRef.current;
+      if (!map || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      map.jumpTo({ zoom: 0.5 });
+      map.easeTo({ zoom: 1.3, duration: 1600, easing: (t) => (t === 1 ? 1 : 1 - 2 ** (-10 * t)) });
+    };
+    window.addEventListener(ENTER_EVENT, onEnter);
+    return () => window.removeEventListener(ENTER_EVENT, onEnter);
+  }, [autoRotate]);
 
   // ── Actions ──
   const flyTo = (lat: number, lon: number, zoom: number) =>

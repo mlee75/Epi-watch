@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { LiveTvPanel } from '@/components/LiveTvPanel';
 import { IntroGate } from '@/components/IntroGate';
+import { CountUp } from '@/components/motion/CountUp';
 import { Footer } from '@/components/Footer';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import { Trend } from '@/components/Trend';
@@ -216,12 +217,12 @@ export default async function HomePage() {
         <section className="kpi-row" aria-label="Headline figures">
           <div className="kpi">
             <div className="kpi-label">Records</div>
-            <div className="kpi-value">{fmtNumber(stats.total)}</div>
+            <div className="kpi-value"><CountUp value={stats.total} /></div>
             <div className="kpi-note">{curated} curated · {automated} automated</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Countries</div>
-            <div className="kpi-value">{stats.countriesAffected}</div>
+            <div className="kpi-value"><CountUp value={stats.countriesAffected} /></div>
             <div className="kpi-note">With at least one record</div>
           </div>
           {/* No summed case or death totals: records overlap (one event can be
@@ -229,17 +230,17 @@ export default async function HomePage() {
               so a sum was dominated by a single malaria record and meant nothing. */}
           <div className="kpi">
             <div className="kpi-label">With case figures</div>
-            <div className="kpi-value">{withFigures}</div>
+            <div className="kpi-value"><CountUp value={withFigures} /></div>
             <div className="kpi-note">{unreported} records state no case count</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Added in last 30 days</div>
-            <div className="kpi-value">{recent30}</div>
+            <div className="kpi-value"><CountUp value={recent30} /></div>
             <div className="kpi-note">By date first recorded</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Critical severity</div>
-            <div className="kpi-value">{stats.critical}</div>
+            <div className="kpi-value"><CountUp value={stats.critical} /></div>
             <div className="kpi-note">{SEVERITY_RULE.CRITICAL}</div>
           </div>
         </section>

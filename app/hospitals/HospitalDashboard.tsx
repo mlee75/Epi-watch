@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { LineChart } from '@/components/dashboard/LineChart';
 import { Trend } from '@/components/Trend';
+import { CountUp } from '@/components/motion/CountUp';
 import type { NhsnData, NhsnWeek, SariCountry, SariData, UkData } from '@/lib/live/hospital';
 import { SARI_MIN_BASE, SARI_SETTLE_DAYS } from '@/lib/live/hospital';
 import { fmtDateShort, fmtNumber } from '@/lib/format';
@@ -103,12 +104,12 @@ export default function HospitalDashboard({ sari, nhsn, uk, generatedAt }: Props
       <section className="kpi-row" aria-label="Summary">
         <div className="kpi">
           <div className="kpi-label">Countries reporting SARI</div>
-          <div className="kpi-value">{reportingRecent}</div>
+          <div className="kpi-value"><CountUp value={reportingRecent} /></div>
           <div className="kpi-note">Data in the last 6 weeks · WHO FluID</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Rising ≥ 25%</div>
-          <div className="kpi-value">{rising}</div>
+          <div className="kpi-value"><CountUp value={rising} /></div>
           <div className="kpi-note">Newest settled week vs prior 4-week mean</div>
         </div>
         <div className="kpi">
