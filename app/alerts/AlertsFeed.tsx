@@ -22,7 +22,10 @@ const KIND_LABEL: Record<Alert['kind'], string> = {
 
 const LANG_NAME: Record<string, string> = {
   en: 'English', pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', id: 'Indonesian',
-  vi: 'Vietnamese', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', ar: 'Arabic',
+  vi: 'Vietnamese', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', 'zh-Hant': 'Chinese (traditional)', ar: 'Arabic',
+  th: 'Thai', ms: 'Malay', fa: 'Persian', he: 'Hebrew', tr: 'Turkish', nl: 'Dutch', sv: 'Swedish', no: 'Norwegian',
+  da: 'Danish', fi: 'Finnish', pl: 'Polish', el: 'Greek', ro: 'Romanian', cs: 'Czech', hu: 'Hungarian',
+  uk: 'Ukrainian', ru: 'Russian', bn: 'Bengali',
 };
 
 const PAGE = 60;

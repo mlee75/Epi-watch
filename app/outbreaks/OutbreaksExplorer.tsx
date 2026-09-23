@@ -9,6 +9,8 @@ import { UNSPECIFIED_KEY, canonicalCountry, diseaseInfo, diseaseKey, diseaseName
 import { normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
 import { fmtCount, fmtDate, fmtDateShort } from '@/lib/format';
 import LiveOutbreaksDashboard from './LiveOutbreaksDashboard';
+import Link from 'next/link';
+import { iso3ForName } from '@/lib/countryNames';
 
 const LiveMap = dynamic(() => import('@/components/map/LiveMap'), {
   ssr: false,
@@ -230,7 +232,12 @@ export default function OutbreaksExplorer({ outbreaks, countries }: Props) {
                             onClick={() => setOpenCountry(openCountry === c.country ? null : c.country)} style={{ cursor: 'pointer' }}>
                             <td>
                               {NON_COUNTRY.has(c.country) ? 'Multiple or unspecified countries' : c.country}
-                              <span className="sub">{openCountry === c.country ? 'Hide reports' : 'Show reports'}</span>
+                              <span className="sub">
+                                {openCountry === c.country ? 'Hide reports' : 'Show reports'}
+                                {iso3ForName(c.country) && (
+                                  <> · <Link className="link" href={`/countries/${iso3ForName(c.country)}`} onClick={(e) => e.stopPropagation()}>Country brief</Link></>
+                                )}
+                              </span>
                             </td>
                             <td className="num">{c.records.length}</td>
                             <td className="num">{fmtCount(c.maxCases)}</td>

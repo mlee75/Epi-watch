@@ -15,12 +15,22 @@ interface CountryOutbreak {
   deaths: number;
 }
 
-interface HealthArticle {
+interface BriefItem {
+  id: string;
   title: string;
   url: string;
-  source: string;
+  publisher: string;
   publishedAt: string | null;
+  group: 'national' | 'agencies' | 'humanitarian' | 'press';
+  language: string;
 }
+
+const GROUP_SHORT: Record<BriefItem['group'], string> = {
+  national: 'National authority',
+  agencies: 'Agency',
+  humanitarian: 'Humanitarian',
+  press: 'Press',
+};
 
 interface HospitalSummary {
   sari: {
@@ -52,10 +62,12 @@ interface Props {
  * different formula from the travel estimate tool (so the two disagreed for
  * the same country), a green "No Active Outbreaks" for countries that simply
  * have no records, a "30 days" label on search results that have no date
- * limit, and flag emoji.
+ * limit, and flag emoji. The open Google News search it showed has been
+ * replaced by verified reporting only.
  */
 export function CountryTooltip({ countryName, iso3, threatLevel, outbreaks, onClose, onViewFull }: Props) {
-  const [articles, setArticles] = useState<HealthArticle[]>([]);
+  const [articles, setArticles] = useState<BriefItem[]>([]);
+  const [articleTotal, setArticleTotal] = useState(0);
   const [loadingArticles, setLoadingArticles] = useState(true);
   const [hospital, setHospital] = useState<HospitalSummary | null>(null);
 
@@ -70,15 +82,20 @@ export function CountryTooltip({ countryName, iso3, threatLevel, outbreaks, onCl
     return () => ctrl.abort();
   }, [iso3]);
 
+  // Verified reporting only (national authority, WHO and agencies,
+  // humanitarian organisations, established press); see countryBrief.ts.
   useEffect(() => {
     setLoadingArticles(true);
-    const gnewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(countryName + ' disease outbreak epidemic health')}&hl=en-US&gl=US&ceid=US:en`;
-    fetch(`/api/news-proxy?url=${encodeURIComponent(gnewsUrl)}`)
+    setArticles([]);
+    if (!iso3 || !/^[A-Z]{3}$/i.test(iso3)) { setLoadingArticles(false); return; }
+    const ctrl = new AbortController();
+    fetch(`/api/live/country-brief?iso3=${iso3}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => setArticles(data.articles ?? []))
+      .then((d: { items: BriefItem[] }) => { setArticles(d.items ?? []); setArticleTotal(d.items?.length ?? 0); })
       .catch(() => setArticles([]))
       .finally(() => setLoadingArticles(false));
-  }, [countryName]);
+    return () => ctrl.abort();
+  }, [iso3]);
 
   return (
     <div className="ct" role="dialog" aria-label={countryName}>
@@ -174,23 +191,30 @@ export function CountryTooltip({ countryName, iso3, threatLevel, outbreaks, onCl
         )}
 
         <section>
-          <h3 className="ct-h">Recent coverage <span className="muted" style={{ fontWeight: 400 }}>· Google News</span></h3>
+          <h3 className="ct-h">
+            Verified reporting {articleTotal > 0 && <span className="muted" style={{ fontWeight: 400 }}>· {articleTotal}</span>}
+          </h3>
           {loadingArticles ? (
-            <p className="muted" style={{ fontSize: 12.5 }}>Loading…</p>
+            <p className="muted" style={{ fontSize: 12.5 }}>Searching verified sources…</p>
           ) : articles.length > 0 ? (
             <ul className="ct-news">
-              {articles.slice(0, 5).map((a, i) => (
-                <li key={i}>
-                  <a href={a.url} target="_blank" rel="noopener noreferrer">{a.title}</a>
+              {articles.slice(0, 5).map((a) => (
+                <li key={a.id}>
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" lang={a.language !== 'en' ? a.language : undefined}>{a.title}</a>
                   <span className="muted">
-                    {a.source}
+                    {GROUP_SHORT[a.group]} · {a.publisher}
                     {a.publishedAt && ` · ${formatDistanceToNow(new Date(a.publishedAt), { addSuffix: true })}`}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="muted" style={{ fontSize: 12.5 }}>No results.</p>
+            <p className="muted" style={{ fontSize: 12.5 }}>No recent reports from verified sources.</p>
+          )}
+          {iso3 && (
+            <Link href={`/countries/${iso3.toUpperCase()}`} className="btn" style={{ marginTop: 10, width: '100%' }}>
+              Full country brief
+            </Link>
           )}
         </section>
       </div>

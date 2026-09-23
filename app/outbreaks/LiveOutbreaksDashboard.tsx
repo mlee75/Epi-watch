@@ -2,6 +2,8 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { iso3ForName } from '@/lib/countryNames';
 import type { Outbreak } from '@/lib/types';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import { SEVERITY_LABEL, SEVERITY_ORDER, normalizeSeverity, severityRank } from '@/lib/severity';
@@ -14,11 +16,13 @@ interface Props {
   embedded?: boolean;
 }
 
-interface HealthArticle {
+interface BriefItem {
+  id: string;
   title: string;
   url: string;
-  source: string;
+  publisher: string;
   publishedAt: string | null;
+  group: string;
 }
 
 type SortKey = 'severity' | 'cases' | 'deaths' | 'reported' | 'disease' | 'country';
@@ -47,7 +51,7 @@ export default function LiveOutbreaksDashboard({ initialOutbreaks, countries, em
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
 
-  const [articles, setArticles] = useState<HealthArticle[]>([]);
+  const [articles, setArticles] = useState<BriefItem[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
 
   useEffect(() => {
@@ -55,11 +59,13 @@ export default function LiveOutbreaksDashboard({ initialOutbreaks, countries, em
       setArticles([]);
       return;
     }
+    const iso3 = iso3ForName(country);
+    if (!iso3) { setArticles([]); return; }
     setLoadingArticles(true);
-    const gnewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(country + ' disease outbreak')}&hl=en-US&gl=US&ceid=US:en`;
-    fetch(`/api/news-proxy?url=${encodeURIComponent(gnewsUrl)}`)
+    // Verified reporting only (see lib/live/countryBrief.ts).
+    fetch(`/api/live/country-brief?iso3=${iso3}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => setArticles(data.articles ?? []))
+      .then((data) => setArticles((data.items ?? []).slice(0, 10)))
       .catch(() => setArticles([]))
       .finally(() => setLoadingArticles(false));
   }, [country]);
@@ -272,22 +278,24 @@ export default function LiveOutbreaksDashboard({ initialOutbreaks, countries, em
         {country !== 'ALL' && (
           <aside className="panel" aria-label={`News for ${country}`}>
             <div className="panel-header">
-              <h2 className="panel-title">Recent coverage: {country}</h2>
-              <span className="panel-meta">Google News</span>
+              <h2 className="panel-title">Verified reporting: {country}</h2>
+              {iso3ForName(country) && (
+                <Link href={`/countries/${iso3ForName(country)}`} className="link" style={{ fontSize: 12.5 }}>Country brief</Link>
+              )}
             </div>
             <div className="panel-body" style={{ display: 'grid', gap: 12 }}>
               {loadingArticles && <p className="muted">Loading…</p>}
-              {!loadingArticles && articles.length === 0 && <p className="muted">No recent coverage found.</p>}
+              {!loadingArticles && articles.length === 0 && <p className="muted">No recent reports from verified sources.</p>}
               {articles.map((a) => (
-                <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="ob-article">
+                <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" className="ob-article">
                   <span>{a.title}</span>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    {a.source}{a.publishedAt ? ` · ${fmtDateShort(a.publishedAt)}` : ''}
+                    {a.publisher}{a.publishedAt ? ` · ${fmtDateShort(a.publishedAt)}` : ''}
                   </span>
                 </a>
               ))}
               <p className="muted" style={{ fontSize: 11.5 }}>
-                Search results for the country name; not filtered or reviewed.
+                National health authority, WHO and agencies, humanitarian organisations and established press only.
               </p>
             </div>
           </aside>

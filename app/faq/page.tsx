@@ -188,10 +188,26 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         a: (
           <>
             International agencies&rsquo; own feeds and APIs: WHO Disease Outbreak News, ECDC news and weekly
-            threat reports, PAHO, WHO Africa, WHO news, CDC travel notices and UKHSA. For about 28 national
-            health authorities that publish no usable feed, Epi-watch searches Google News restricted to the
-            authority&rsquo;s own website, in its own language, and keeps an item only if its publisher is on
-            that website and its title names a disease or outbreak. The list is refreshed every 30 minutes.
+            threat reports, PAHO, WHO Africa, WHO news, CDC travel notices and UKHSA. For about 100 national
+            health authorities, most of which publish no usable feed, Epi-watch searches Google News restricted
+            to the authority&rsquo;s own website, in its own language (25 languages), and keeps an item only if its
+            publisher is on that website and its title names a disease or outbreak. Each authority was added only
+            after its domain was tested and returned health notices. The list is refreshed every 30 minutes.
+          </>
+        ),
+      },
+      {
+        q: 'What is on a country page?',
+        a: (
+          <>
+            Everything Epi-watch holds on one country: its outbreak records, hospital admissions where WHO FluID has
+            them, and reporting from verified publishers only, in four groups. The national health authority (last
+            180 days); WHO Disease Outbreak News (about four years), other WHO, PAHO, ECDC and Africa CDC items and
+            CDC travel notices; humanitarian organisations with editorial vetting, namely ReliefWeb, MSF, UNICEF and IFRC (90
+            days); and established press (Reuters, AP, France 24, BBC, Al Jazeera, CIDRAP, STAT, Health Policy
+            Watch; 45 days). Each item&rsquo;s publisher is checked against these domains, and outside the national
+            authority the headline must name the country and a health subject. The page lists exactly what was
+            searched.
           </>
         ),
       },
