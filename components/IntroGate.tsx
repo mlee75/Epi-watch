@@ -27,7 +27,7 @@ export function IntroGate({ intro }: { intro?: { videoSrc: string; poster?: stri
   const [leaving, setLeaving] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [videoDone, setVideoDone] = useState(!intro);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const gateRef = useRef<HTMLDivElement>(null);
 
   useIsoLayoutEffect(() => {
     try {
@@ -45,7 +45,10 @@ export function IntroGate({ intro }: { intro?: { videoSrc: string; poster?: stri
 
   useEffect(() => {
     if (open && videoDone && quote) {
-      const t = setTimeout(() => buttonRef.current?.focus({ preventScroll: true }), 600);
+      // Focus the dialog itself rather than the button, so keyboard users are
+      // inside it without a focus ring showing on the button before they act;
+      // Enter or Escape enters.
+      const t = setTimeout(() => gateRef.current?.focus({ preventScroll: true }), 300);
       return () => clearTimeout(t);
     }
   }, [open, videoDone, quote]);
@@ -70,7 +73,9 @@ export function IntroGate({ intro }: { intro?: { videoSrc: string; poster?: stri
       role="dialog"
       aria-modal="true"
       aria-labelledby="gate-quote"
-      onKeyDown={(e) => { if (e.key === 'Escape') enter(); }}
+      ref={gateRef}
+      tabIndex={-1}
+      onKeyDown={(e) => { if (e.key === 'Escape' || (e.key === 'Enter' && e.target === e.currentTarget)) enter(); }}
     >
       {intro && !videoDone && (
         <video className="gate-video" src={intro.videoSrc} poster={intro.poster} autoPlay muted playsInline
@@ -102,8 +107,11 @@ export function IntroGate({ intro }: { intro?: { videoSrc: string; poster?: stri
             <p className="gate-purpose">
               Outbreaks, hospital admissions and emergency response around the world, as they are reported.
             </p>
-            <button ref={buttonRef} type="button" className="btn btn-primary gate-enter" onClick={enter}>
-              Enter the globe <span aria-hidden="true">→</span>
+            <button type="button" className="gate-enter" onClick={enter}>
+              <span>Enter Epi-watch</span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
           </div>
         </div>

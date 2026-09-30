@@ -691,11 +691,11 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
 }
 
 /* ── Entry screen (components/IntroGate.tsx) ──── */
-/* Opaque and editorial: left-aligned, one text idea at a time, no stacked
-   eyebrow/headline/subline poster. */
+/* Opaque, with the quote centred on the page: the mark sits top-left, the
+   quote, attribution and entry button share one centred column. */
 .gate {
   position: fixed; inset: 0; z-index: 100; background: var(--page);
-  display: grid; grid-template-rows: auto 1fr; padding: 28px clamp(20px, 6vw, 88px) clamp(28px, 6vh, 64px);
+  display: grid; grid-template-rows: auto 1fr auto; padding: 28px clamp(20px, 6vw, 88px);
   transition: opacity var(--dur-exit) var(--ease-in-out), visibility var(--dur-exit);
 }
 .gate.is-leaving { opacity: 0; visibility: hidden; }
@@ -704,23 +704,36 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
   position: relative; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--ink-1);
   animation: settle var(--dur-in) var(--ease-out-expo) both 100ms;
 }
-.gate-body { position: relative; align-self: end; max-width: 980px; display: grid; gap: 28px; }
+.gate-body {
+  position: relative; align-self: center; justify-self: center; width: 100%; max-width: 920px;
+  display: grid; justify-items: center; gap: 28px; text-align: center; padding-bottom: 4vh;
+}
 .gate-quote {
   margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: 400;
-  font-size: clamp(28px, 4.6vw, 58px); line-height: 1.16; letter-spacing: -0.01em; color: var(--ink-1); text-wrap: balance;
+  font-size: clamp(28px, 4.4vw, 54px); line-height: 1.18; letter-spacing: -0.01em; color: var(--ink-1); text-wrap: balance;
 }
 .gate-word { display: inline-block; white-space: pre; animation: word-in 600ms var(--ease-out-expo) both; }
-.gate-cite { margin: 0; display: grid; gap: 2px; }
+.gate-cite { margin: 0; display: grid; gap: 2px; justify-items: center; }
 .gate-author { font-size: 15px; color: var(--ink-1); font-weight: 500; }
 .gate-source { font-size: 13px; color: var(--ink-3); }
 .gate-foot {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px;
-  padding-top: 24px; border-top: 1px solid var(--hairline);
+  display: grid; justify-items: center; gap: 22px; padding-top: 28px; margin-top: 4px;
+  border-top: 1px solid var(--hairline); width: min(520px, 100%);
 }
 .gate-purpose { font-size: 14px; color: var(--ink-2); max-width: 440px; line-height: 1.6; margin: 0; }
-.gate-enter { height: 44px; padding: 0 22px; font-size: 14px; gap: 10px; }
-.gate-enter span { transition: transform 240ms var(--ease-out-expo); }
-.gate-enter:hover span { transform: translateX(3px); }
+/* Outlined pill that fills on hover; the arrow nudges forward. */
+.gate-enter {
+  all: unset; cursor: pointer; box-sizing: border-box;
+  display: inline-flex; align-items: center; gap: 12px; height: 46px; padding: 0 22px 0 26px;
+  border: 1px solid rgba(245, 244, 240, 0.55); border-radius: 999px;
+  font-size: 14.5px; font-weight: 500; letter-spacing: 0.01em; color: var(--ink-1);
+  transition: background-color 260ms var(--ease-out-expo), color 260ms var(--ease-out-expo), border-color 260ms var(--ease-out-expo), transform 160ms var(--ease-out-expo);
+}
+.gate-enter svg { transition: transform 300ms var(--ease-out-expo); }
+.gate-enter:hover { background: var(--ink-1); color: var(--page); border-color: var(--ink-1); }
+.gate-enter:hover svg { transform: translateX(3px); }
+.gate-enter:active { transform: scale(0.98); }
+.gate-enter:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .gate-settle { animation: settle var(--dur-in) var(--ease-out-expo) both; }
 .gate-skip { all: unset; cursor: pointer; position: absolute; right: 20px; bottom: 20px; font-size: 12.5px; color: var(--ink-2); }
 
@@ -827,3 +840,4 @@ html.js .panel:not([data-in]) .rb-bar { transform: scaleX(0); }
 .cx-sources ul { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
 .cx-sources li { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-2); }
 .cx-sources p { font-size: 11.5px; line-height: 1.5; margin: 0; }
+.gate:focus { outline: none; }
