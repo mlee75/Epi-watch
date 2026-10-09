@@ -2,17 +2,18 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { GeoJSONSource, Map as MlMap, MapGeoJSONFeature } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, Map as MlMap, MapGeoJSONFeature } from 'maplibre-gl';
 import type { Outbreak } from '@/lib/types';
 import type { AircraftData, EmergencyAircraft } from '@/lib/live/aircraft';
-import type { EmergenciesData, Emergency } from '@/lib/live/emergencies';
+import type { AreaCollection, EmergenciesData, Emergency } from '@/lib/live/emergencies';
 import type { Camera } from '@/lib/live/cameras';
 import { distanceKm, project } from '@/lib/geo';
 import { normalizeSeverity, severityRank, SEVERITY_LABEL, SEVERITY_ORDER, SEVERITY_RULE, type SeverityLevel } from '@/lib/severity';
 import { CountryTooltip } from '@/components/CountryTooltip';
 import { OutbreakDetailPanel } from '@/components/OutbreakDetailPanel';
 import { ENTER_EVENT } from '@/lib/events';
-import { DAY_URL, MERCATOR_WORLD, createDayNightComposer, subsolarPoint } from './dayNight';
+import { MERCATOR_WORLD, TEXTURES, chooseTextureSize, createDayNightComposer, subsolarPoint, type TextureSize } from './dayNight';
+import type { Hotspot } from '@/lib/placeOutbreaks';
 import {
   BASEMAP_STYLE, COLOR, COUNTRIES_URL, GDACS_COLOR, SATELLITE_TILES, SEVERITY_FILL, buildCountryIndex, countryCode,
 } from './mapStyle';
@@ -30,6 +31,8 @@ type Selection =
 
 interface Props {
   outbreaks: Outbreak[];
+  /** Live mode: outbreak hotspots placed by lib/placeOutbreaks.ts (server). */
+  hotspots?: Hotspot[];
   /** "live": full operations map. "disease": shades only the given countries. */
   mode?: 'live' | 'disease';
   /** Disease mode: canonical country names and the worst severity for each. */
@@ -45,16 +48,16 @@ interface Props {
   overlay?: ReactNode;
 }
 
-const LAYER_DEFS: { key: LayerKey; label: string; color: string; shape: 'arrow' | 'dot' | 'ring' | 'square' | 'fill' | 'label'; group: string }[] = [
+const LAYER_DEFS: { key: LayerKey; label: string; color: string; shape: 'arrow' | 'dot' | 'ring' | 'square' | 'fill' | 'label' | 'glow'; group: string }[] = [
   { key: 'hems', label: 'Air ambulances', color: COLOR.hems, shape: 'arrow', group: 'Aircraft (live ADS-B)' },
   { key: 'sar', label: 'Search and rescue', color: COLOR.sar, shape: 'arrow', group: 'Aircraft (live ADS-B)' },
   { key: 'acEmergency', label: 'Aircraft emergencies (7700)', color: COLOR.aircraftEmergency, shape: 'arrow', group: 'Aircraft (live ADS-B)' },
-  { key: 'disasters', label: 'Disasters (GDACS)', color: GDACS_COLOR.orange, shape: 'ring', group: 'Emergencies' },
+  { key: 'disasters', label: 'Disasters: affected areas (GDACS)', color: GDACS_COLOR.orange, shape: 'fill', group: 'Emergencies' },
   { key: 'medicalCalls', label: 'Medical calls (Seattle 911)', color: COLOR.medicalCall, shape: 'dot', group: 'Emergencies' },
   { key: 'collisions', label: 'Traffic collisions (Seattle 911)', color: COLOR.collision, shape: 'dot', group: 'Emergencies' },
   { key: 'rescueFire', label: 'Rescues and fires (Seattle 911)', color: COLOR.rescueFire, shape: 'dot', group: 'Emergencies' },
   { key: 'daynight', label: 'Day and night (live sun)', color: '#e8c547', shape: 'dot', group: 'Context' },
-  { key: 'outbreaks', label: 'Outbreak records', color: SEVERITY_FILL.CRITICAL, shape: 'dot', group: 'Context' },
+  { key: 'outbreaks', label: 'Outbreak hotspots', color: SEVERITY_FILL.CRITICAL, shape: 'glow', group: 'Context' },
   { key: 'hospitals', label: 'Hospitals (zoom in)', color: COLOR.hospital, shape: 'label', group: 'Context' },
   { key: 'cameras', label: 'Traffic cameras (London, Seattle)', color: COLOR.camera, shape: 'square', group: 'Context' },
 ];
@@ -85,8 +88,10 @@ const BASIS_LABEL: Record<EmergencyAircraft['basis'], string> = {
   lifeguard: 'The crew has set the ADS-B "lifeguard" medical-flight status.',
 };
 
+const PULSE_PERIOD_MS = 2600;
 const AIRCRAFT_REFRESH_MS = 30_000;
 const EMERGENCY_REFRESH_MS = 120_000;
+const AREAS_REFRESH_MS = 600_000;
 const MAX_EXTRAPOLATE_S = 120;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -129,24 +134,6 @@ function bboxOf(features: GeoJSON.Feature[]): [Coord, Coord] | null {
   return minX <= maxX ? [[minX, minY], [maxX, maxY]] : null;
 }
 
-/** Area-weighted centroid of a country's largest polygon (its main land mass). */
-function polygonAnchor(geom: GeoJSON.Geometry): [number, number] | null {
-  const polys: GeoJSON.Position[][][] =
-    geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
-  let best: [number, number] | null = null;
-  let bestArea = 0;
-  for (const poly of polys) {
-    const ring = poly[0];
-    let a = 0, cx = 0, cy = 0;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
-      a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
-    }
-    if (Math.abs(a) > bestArea && a !== 0) { bestArea = Math.abs(a); best = [cx / (3 * a), cy / (3 * a)]; }
-  }
-  return best;
-}
-
 function nearestCameras(cams: Camera[], lat: number, lon: number, maxKm: number, n = 2) {
   return cams
     .map((c) => ({ c, d: distanceKm(lat, lon, c.lat, c.lon) }))
@@ -157,10 +144,11 @@ function nearestCameras(cams: Camera[], lat: number, lon: number, maxKm: number,
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountryClick, aiEnabled = false, height = 640, overlay, autoRotate = false }: Props) {
+export default function LiveMap({ outbreaks, hotspots = [], mode = 'live', highlight, onCountryClick, aiEnabled = false, height = 640, overlay, autoRotate = false }: Props) {
   const live = mode === 'live';
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const texSize = useRef<TextureSize>(2048);
   // The map's click handler is registered once; read the latest callback.
   const onCountryClickRef = useRef(onCountryClick);
   onCountryClickRef.current = onCountryClick;
@@ -175,6 +163,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
   const [aircraftAt, setAircraftAt] = useState(0);
   const [emergencies, setEmergencies] = useState<EmergenciesData | null>(null);
   const [emergenciesAt, setEmergenciesAt] = useState(0);
+  const [areas, setAreas] = useState<AreaCollection | null>(null);
   const [cameras, setCameras] = useState<Camera[]>([]);
 
   const [selection, setSelection] = useState<Selection>(null);
@@ -221,6 +210,12 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
       setAircraftAt(Date.now());
     } catch { /* keep last */ }
   }, []);
+  const loadAreas = useCallback(async () => {
+    try {
+      const r = await fetch('/api/live/areas');
+      if (r.ok) setAreas(await r.json());
+    } catch { /* keep last */ }
+  }, []);
   const loadEmergencies = useCallback(async () => {
     try {
       const r = await fetch('/api/live/emergencies');
@@ -234,12 +229,14 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     if (!live) return;
     loadAircraft();
     loadEmergencies();
+    loadAreas();
     fetch('/api/live/cameras').then((r) => r.json()).then((d) => setCameras(d.cameras ?? [])).catch(() => {});
     const a = setInterval(() => document.visibilityState === 'visible' && loadAircraft(), AIRCRAFT_REFRESH_MS);
     const e = setInterval(() => document.visibilityState === 'visible' && loadEmergencies(), EMERGENCY_REFRESH_MS);
+    const ar = setInterval(() => document.visibilityState === 'visible' && loadAreas(), AREAS_REFRESH_MS);
     const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => { clearInterval(a); clearInterval(e); clearInterval(t); };
-  }, [live, loadAircraft, loadEmergencies]);
+    return () => { clearInterval(a); clearInterval(e); clearInterval(ar); clearInterval(t); };
+  }, [live, loadAircraft, loadEmergencies, loadAreas]);
 
   // ── Map initialisation ──
   useEffect(() => {
@@ -292,7 +289,8 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
           // position (see dayNight.ts). Starts as the daylight image and is
           // replaced by the composite as soon as it is rendered. It fades out
           // by zoom 6.5, where streets take over.
-          map!.addSource('earth', { type: 'image', url: DAY_URL, coordinates: MERCATOR_WORLD });
+          texSize.current = chooseTextureSize();
+          map!.addSource('earth', { type: 'image', url: TEXTURES[texSize.current].day, coordinates: MERCATOR_WORLD });
           map!.addLayer({
             id: 'earth', type: 'raster', source: 'earth',
             paint: {
@@ -341,15 +339,70 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         }, firstSymbol);
 
         if (live) {
-          map!.addSource('outbreak-markers', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+          // GDACS affected areas: cyclone wind zones, earthquake shaking
+          // contours, fire and flood extents. Drawn under the markers.
+          map!.addSource('em-areas', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
           map!.addLayer({
-            id: 'outbreak-markers', type: 'circle', source: 'outbreak-markers',
+            id: 'em-areas-fill', type: 'fill', source: 'em-areas',
             paint: {
-              'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 4, 5, 6, 15, 9, 40, 12],
-              'circle-color': ['match', ['get', 'sev'], 'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM, SEVERITY_FILL.LOW],
-              'circle-stroke-color': '#0d0d0d', 'circle-stroke-width': 1.5, 'circle-opacity': 0.95,
+              'fill-color': ['match', ['get', 'level'], 'red', GDACS_COLOR.red, 'orange', GDACS_COLOR.orange, GDACS_COLOR.green],
+              'fill-opacity': ['match', ['get', 'level'], 'red', 0.3, 'orange', 0.22, 0.14],
+            },
+          }, firstSymbol);
+          map!.addLayer({
+            id: 'em-areas-line', type: 'line', source: 'em-areas',
+            paint: {
+              'line-color': ['match', ['get', 'level'], 'red', GDACS_COLOR.red, 'orange', GDACS_COLOR.orange, GDACS_COLOR.green],
+              'line-width': 1, 'line-opacity': 0.75,
+            },
+          }, firstSymbol);
+
+          // Outbreak hotspots: a soft glow sized by the number of records, a
+          // centre mark (filled when placed on a named province, a ring when
+          // the report gave no province and the mark is at the country's
+          // centre), and an expanding pulse on critical and high records.
+          const sevColor: ExpressionSpecification = ['match', ['get', 'sev'],
+            'CRITICAL', SEVERITY_FILL.CRITICAL, 'HIGH', SEVERITY_FILL.HIGH, 'MEDIUM', SEVERITY_FILL.MEDIUM, SEVERITY_FILL.LOW];
+          map!.addSource('hotspots', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+          map!.addLayer({
+            id: 'ob-halo', type: 'circle', source: 'hotspots',
+            paint: {
+              // Zoom must be the top-level interpolate; the record count scales
+              // each stop (10 px for one record, 30 px for 10+).
+              'circle-radius': ['interpolate', ['linear'], ['zoom'],
+                1, ['*', 0.8, ['min', 30, ['+', 10, ['*', 6, ['log2', ['+', ['get', 'records'], 1]]]]]],
+                4, ['*', 1.3, ['min', 30, ['+', 10, ['*', 6, ['log2', ['+', ['get', 'records'], 1]]]]]],
+                8, ['*', 2, ['min', 30, ['+', 10, ['*', 6, ['log2', ['+', ['get', 'records'], 1]]]]]]],
+              'circle-color': sevColor,
+              'circle-blur': 1,
+              'circle-opacity': ['match', ['get', 'sev'], 'CRITICAL', 0.6, 'HIGH', 0.5, 'MEDIUM', 0.4, 0.3],
               'circle-pitch-alignment': 'map',
             },
+          });
+          map!.addLayer({
+            id: 'ob-pulse', type: 'circle', source: 'hotspots', filter: ['in', ['get', 'sev'], ['literal', ['CRITICAL', 'HIGH']]],
+            paint: {
+              'circle-radius': 6, 'circle-color': 'rgba(0,0,0,0)',
+              'circle-stroke-color': sevColor, 'circle-stroke-width': 1.5, 'circle-stroke-opacity': 0.6,
+              'circle-pitch-alignment': 'map',
+            },
+          });
+          map!.addLayer({
+            id: 'ob-core', type: 'circle', source: 'hotspots',
+            paint: {
+              'circle-radius': ['case', ['get', 'precise'], 4, 3.5],
+              'circle-color': ['case', ['get', 'precise'], sevColor, 'rgba(13,13,13,0.85)'],
+              'circle-stroke-color': ['case', ['get', 'precise'], '#0d0d0d', sevColor],
+              'circle-stroke-width': ['case', ['get', 'precise'], 1.2, 1.6],
+            },
+          });
+          map!.addLayer({
+            id: 'ob-label', type: 'symbol', source: 'hotspots', minzoom: 3.2,
+            layout: {
+              'text-field': ['get', 'label'], 'text-font': ['Noto Sans Regular'], 'text-size': 11,
+              'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true, 'text-max-width': 12,
+            },
+            paint: { 'text-color': '#f5f4f0', 'text-halo-color': '#0d0d0d', 'text-halo-width': 1.2 },
           });
         }
 
@@ -379,13 +432,13 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
             paint: { 'circle-radius': 4, 'circle-color': '#0d0d0d', 'circle-stroke-color': COLOR.camera, 'circle-stroke-width': 1.5 },
           });
           map!.addSource('emergencies', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+          // Disaster centre points (the affected area itself is em-areas).
           map!.addLayer({
             id: 'em-disaster', type: 'circle', source: 'emergencies', filter: ['==', ['get', 'kind'], 'disaster'],
             paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 6, 6, 11],
-              'circle-color': 'rgba(0,0,0,0)',
-              'circle-stroke-color': ['match', ['get', 'level'], 'red', GDACS_COLOR.red, 'orange', GDACS_COLOR.orange, GDACS_COLOR.green],
-              'circle-stroke-width': 2.5,
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 3.5, 6, 5],
+              'circle-color': ['match', ['get', 'level'], 'red', GDACS_COLOR.red, 'orange', GDACS_COLOR.orange, GDACS_COLOR.green],
+              'circle-stroke-color': '#0d0d0d', 'circle-stroke-width': 1.2,
             },
           });
           map!.addLayer({
@@ -425,7 +478,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         setReady(true);
       });
 
-      const clickable = ['aircraft', 'em-aircraft', 'em-calls', 'em-disaster', 'cameras', 'outbreak-markers', 'countries-fill'];
+      const clickable = ['aircraft', 'em-aircraft', 'em-calls', 'em-disaster', 'cameras', 'ob-core', 'ob-halo', 'em-areas-fill', 'countries-fill'];
       map.on('click', (e) => {
         const present = clickable.filter((l) => map!.getLayer(l));
         const feats = map!.queryRenderedFeatures(e.point, { layers: present });
@@ -435,7 +488,8 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         if (lid === 'aircraft') { setSelection({ kind: 'aircraft', hex: String(f.properties.hex) }); setFollow(false); }
         else if (lid.startsWith('em-')) setSelection({ kind: 'emergency', id: String(f.properties.id) });
         else if (lid === 'cameras') setSelection({ kind: 'camera', id: String(f.properties.id) });
-        else if (lid === 'outbreak-markers') setSelection({ kind: 'country', name: String(f.properties.name), iso3: String(f.properties.iso3) });
+        else if (lid === 'ob-core' || lid === 'ob-halo') setSelection({ kind: 'country', name: String(f.properties.country), iso3: String(f.properties.iso3) });
+        else if (lid === 'em-areas-fill') setSelection({ kind: 'emergency', id: String(f.properties.id) });
         else if (lid === 'countries-fill') {
           const name = String(f.properties.ADMIN ?? '');
           if (mode === 'disease') { onCountryClickRef.current?.(name); return; }
@@ -474,51 +528,51 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     }
   }, [ready, countries, severityByCode, mode]);
 
-  // ── Outbreak markers (live globe): one per country ──
+  // ── Outbreak hotspots (live globe) ──
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !live || !countries) return;
-    const nameByCode = new Map(countries.features.map((f) => {
-      const p = f.properties as { ADM0_A3?: string; ADMIN?: string };
-      return [p.ADM0_A3 ?? '', p.ADMIN ?? ''];
-    }));
-    // Markers sit at the centre of each country's largest land area, taken
-    // from its outline. Stored record coordinates are not used: records filed
-    // under "Congo" and "DRC" all carry the Republic of the Congo's centre
-    // point, which put the DRC outbreak in the wrong country.
-    const anchor = new Map<string, [number, number]>();
-    for (const f of countries.features) {
-      const code = (f.properties as { ADM0_A3?: string }).ADM0_A3;
-      if (code) { const pt = polygonAnchor(f.geometry); if (pt) anchor.set(code, pt); }
-    }
-    const agg = new Map<string, { count: number; sev: SeverityLevel }>();
-    for (const o of outbreaks) {
-      const code = countryCode(countryIdx, o.country, o.disease);
-      if (!code) continue;
-      const sev = normalizeSeverity(o.severity);
-      const a = agg.get(code) ?? { count: 0, sev };
-      a.count++;
-      if (severityRank(sev) < severityRank(a.sev)) a.sev = sev;
-      agg.set(code, a);
-    }
-    const features = [...agg.entries()]
-      .filter(([code]) => anchor.has(code))
-      .map(([code, a]) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: anchor.get(code)! },
-        properties: { iso3: code, name: nameByCode.get(code) ?? code, sev: a.sev, count: a.count },
-      }))
-      // Worst severity drawn last, on top.
-      .sort((x, y) => severityRank(y.properties.sev) - severityRank(x.properties.sev));
-    (map.getSource('outbreak-markers') as GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
-  }, [ready, live, countries, outbreaks, countryIdx]);
+    if (!ready || !map || !live) return;
+    (map.getSource('hotspots') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: hotspots.map((h) => ({
+        type: 'Feature', geometry: { type: 'Point', coordinates: [h.lon, h.lat] },
+        properties: {
+          iso3: h.iso3, country: h.country, sev: h.severity, records: h.records, precise: h.precise,
+          label: h.place ? `${h.diseases[0]} · ${h.place}` : h.diseases.length > 1 ? `${h.diseases[0]} +${h.diseases.length - 1}` : h.diseases[0],
+        },
+      })),
+    });
+  }, [ready, live, hotspots]);
+
+  // Pulse: an expanding ring on critical and high hotspots, driven by one
+  // paint update per frame (a handful of points, so this is cheap). Off under
+  // prefers-reduced-motion and while the tab is hidden.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !live || !layers.outbreaks) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    const step = (t: number) => {
+      if (document.visibilityState === 'visible' && map.getLayer('ob-pulse')) {
+        const phase = (t % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
+        const ease = 1 - (1 - phase) ** 2;
+        map.setPaintProperty('ob-pulse', 'circle-radius', 5 + ease * 24);
+        map.setPaintProperty('ob-pulse', 'circle-stroke-opacity', (1 - phase) * 0.7);
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [ready, live, layers.outbreaks]);
 
   // ── Layer visibility and basemap ──
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
     const vis = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    vis('outbreak-markers', layers.outbreaks);
+    for (const id of ['ob-halo', 'ob-pulse', 'ob-core', 'ob-label']) vis(id, layers.outbreaks);
+    vis('em-areas-fill', layers.disasters);
+    vis('em-areas-line', layers.disasters);
     vis('hospital-dot', layers.hospitals);
     vis('hospital-label', layers.hospitals);
     vis('cameras', layers.cameras);
@@ -543,6 +597,12 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
       })),
     });
   }, [ready, live, visibleEmergencies]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !live) return;
+    (map.getSource('em-areas') as GeoJSONSource | undefined)?.setData(areas ?? { type: 'FeatureCollection', features: [] });
+  }, [ready, live, areas]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -602,12 +662,15 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
     if (!ready || !map || !live) return;
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | undefined;
+    let composer: Awaited<ReturnType<typeof createDayNightComposer>> | undefined;
     (async () => {
       try {
-        const composer = await createDayNightComposer();
+        const c = await createDayNightComposer(texSize.current);
+        composer = c;
+        if (cancelled) { c.dispose(); return; }
         const update = async () => {
           const at = new Date();
-          const url = await composer.render(at);
+          const url = await c.render(at);
           if (cancelled) return;
           (map.getSource('earth') as { updateImage?: (o: { url: string; coordinates: typeof MERCATOR_WORLD }) => void } | undefined)
             ?.updateImage?.({ url, coordinates: MERCATOR_WORLD });
@@ -615,9 +678,9 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
         };
         await update();
         timer = setInterval(() => { if (document.visibilityState === 'visible') update(); }, 5 * 60_000);
-      } catch { /* the night image stays up */ }
+      } catch { /* the daylight image stays up */ }
     })();
-    return () => { cancelled = true; if (timer) clearInterval(timer); };
+    return () => { cancelled = true; if (timer) clearInterval(timer); composer?.dispose(); };
   }, [ready, live]);
 
   // ── Idle rotation ──
@@ -750,14 +813,17 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
                 </div>
                 {layers.outbreaks && (
                   <details className="lm-sev">
-                    <summary>Outbreak markers</summary>
+                    <summary>Outbreak hotspots</summary>
                     {SEVERITY_ORDER.map((lvl) => (
                       <div key={lvl} className="lm-sev-row">
                         <span className="sev" style={{ ['--sev-color' as string]: SEVERITY_FILL[lvl] }}>{SEVERITY_LABEL[lvl]}</span>
                         <span className="muted">{SEVERITY_RULE[lvl]}</span>
                       </div>
                     ))}
-                    <p className="lm-sun" style={{ marginTop: 6 }}>One marker per country: colour is the highest severity recorded, size the number of records.</p>
+                    <p className="lm-sun" style={{ marginTop: 6 }}>
+                      Glow size is the number of records; colour the highest severity. A filled centre sits on the province the
+                      report names; a ring means the report named no province, so the mark is at the country&rsquo;s centre.
+                    </p>
                   </details>
                 )}
               </div>
@@ -917,7 +983,7 @@ export default function LiveMap({ outbreaks, mode = 'live', highlight, onCountry
               <li key={e.id}>
                 <button type="button" className={selection?.kind === 'emergency' && selection.id === e.id ? 'is-active' : ''} onClick={() => selectEmergency(e)}>
                   <span
-                    className={`lm-key ${e.kind === 'disaster' ? 'lm-key-ring' : e.kind === 'aircraft-emergency' ? 'lm-key-arrow' : 'lm-key-dot'}`}
+                    className={`lm-key ${e.kind === 'disaster' ? 'lm-key-fill' : e.kind === 'aircraft-emergency' ? 'lm-key-arrow' : 'lm-key-dot'}`}
                     style={{ ['--k' as string]: e.kind === 'disaster' ? GDACS_COLOR[e.level ?? 'green'] : e.kind === 'medical-call' ? COLOR.medicalCall : e.kind === 'traffic-collision' ? COLOR.collision : e.kind === 'aircraft-emergency' ? COLOR.aircraftEmergency : COLOR.rescueFire }}
                     aria-hidden="true"
                   />

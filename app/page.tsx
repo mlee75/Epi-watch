@@ -12,6 +12,7 @@ import TravelRiskCalculator from '@/components/TravelRiskCalculator';
 import prisma from '@/lib/db';
 import { fetchAlerts } from '@/lib/live/alerts';
 import { fetchSari } from '@/lib/live/hospital';
+import { placeOutbreaks } from '@/lib/placeOutbreaks';
 import { withTimeout } from '@/lib/feedText';
 import type { Outbreak, OutbreakStats } from '@/lib/types';
 import { SEVERITY_ORDER, SEVERITY_RULE, normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
@@ -158,6 +159,7 @@ export default async function HomePage() {
     withTimeout(fetchAlerts({ translate: false }), 25_000).catch(() => null),
     withTimeout(fetchSari(), 25_000).catch(() => null),
   ]);
+  const hotspots = placeOutbreaks(outbreaks);
   const latestAlerts = (alertsData?.alerts ?? []).filter((a) => a.tier !== 'media').slice(0, 7);
   const sixWeeksAgo = new Date(Date.now() - 42 * 86_400_000).toISOString().slice(0, 10);
   const risingSari = (sari?.ok ? sari.countries : [])
@@ -197,7 +199,7 @@ export default async function HomePage() {
             <h1 id="map-title" className="panel-title">Live global health map</h1>
             <span className="panel-meta">Select an item to zoom to street level · Ctrl or ⌘ + scroll to zoom</span>
           </div>
-          <LiveMap outbreaks={outbreaks} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />}
+          <LiveMap outbreaks={outbreaks} hotspots={hotspots} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />}
             height="max(560px, calc(100vh - 150px))" autoRotate />
         </section>
 

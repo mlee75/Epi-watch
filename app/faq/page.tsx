@@ -138,6 +138,30 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
         ),
       },
       {
+        q: 'Where exactly is an outbreak hotspot placed?',
+        a: (
+          <>
+            On the province or state the report names, when it names one: &ldquo;South Kivu, Equateur&rdquo; becomes
+            two marks, each on that province, matched against Natural Earth&rsquo;s 4,589 first-level divisions. A
+            filled centre means the mark is province-level. When a report gives no province, or says
+            &ldquo;nationwide&rdquo; or &ldquo;multiple regions&rdquo;, the mark sits at the centre of the
+            country&rsquo;s main land mass and is drawn as a ring instead, so the two are never confused. The glow
+            is sized by the number of records at that place and coloured by the highest severity among them; critical
+            and high hotspots pulse. Records filed under &ldquo;multiple countries&rdquo; are not mapped.
+          </>
+        ),
+      },
+      {
+        q: 'How detailed is the globe imagery?',
+        a: (
+          <>
+            The Earth texture is NASA&rsquo;s Blue Marble and Black Marble at 4096 by 4096 pixels on large screens
+            (2048 on phones and low-memory devices), composed in the browser for the current sun position. From
+            about city zoom the vector street map and, if you choose it, Esri satellite imagery take over.
+          </>
+        ),
+      },
+      {
         q: 'Are any aircraft deliberately left out?',
         a: (
           <>
@@ -153,8 +177,10 @@ const SECTIONS: { heading: string; items: QA[] }[] = [
             From the Seattle Fire Department&rsquo;s real-time 911 feed, which gives the address of every medical
             call, collision and rescue within minutes. Very few emergency services publish dispatch data openly, so
             street-level incidents are shown for Seattle only. Disasters (earthquakes, cyclones, floods, volcanoes,
-            wildfires) come from GDACS, run by the UN and the European Commission, and aircraft declaring an
-            emergency (squawk 7700) from adsb.fi.
+            wildfires) come from GDACS, run by the UN and the European Commission, and are drawn as the affected
+            area GDACS publishes: cyclone wind zones along the track (red for hurricane force, orange for storm
+            force, green for tropical-storm force), earthquake shaking contours, and fire and flood extents. Aircraft
+            declaring an emergency (squawk 7700) come from adsb.fi.
           </>
         ),
       },

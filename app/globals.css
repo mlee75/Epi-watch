@@ -637,6 +637,7 @@ font-size: 13px; color: var(--ink-2); margin-bottom: 10px;
 .lm-key-square { border-radius: 2px; border: 1.5px solid var(--k); background: #0d0d0d; }
 .lm-key-fill { border-radius: 2px; background: var(--k); }
 .lm-key-label { border-radius: 50%; background: #c93545; box-shadow: 0 0 0 1.5px var(--k); width: 9px; height: 9px; }
+.lm-key-glow { border-radius: 50%; width: 14px; height: 14px; background: radial-gradient(circle, var(--k) 0%, var(--k) 25%, transparent 72%); }
 .lm-key-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 12px solid var(--k); }
 
 .lm-reset { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5; height: 28px; font-size: 12px; background: rgba(34, 34, 32, 0.92); }
