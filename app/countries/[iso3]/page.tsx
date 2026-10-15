@@ -17,8 +17,9 @@ import CountryReports from './CountryReports';
 export const revalidate = 1800;
 export const maxDuration = 60;
 
-export async function generateMetadata({ params }: { params: { iso3: string } }) {
-  const ref = countryNames(params.iso3.toUpperCase());
+// Next 15: route params are a promise.
+export async function generateMetadata({ params }: { params: Promise<{ iso3: string }> }) {
+  const ref = countryNames((await params).iso3.toUpperCase());
   return {
     title: ref ? `${ref.name} | Epi-watch` : 'Country | Epi-watch',
     description: ref ? `Outbreak records, hospital admissions and verified health reporting for ${ref.name}.` : undefined,
@@ -35,8 +36,8 @@ async function recordsFor(names: string[]) {
   }
 }
 
-export default async function CountryPage({ params }: { params: { iso3: string } }) {
-  const iso3 = params.iso3.toUpperCase();
+export default async function CountryPage({ params }: { params: Promise<{ iso3: string }> }) {
+  const iso3 = (await params).iso3.toUpperCase();
   const ref = countryNames(iso3);
   if (!ref) notFound();
 

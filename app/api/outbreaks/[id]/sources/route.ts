@@ -4,11 +4,11 @@ import type { OutbreakSource } from '@/lib/types';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const outbreak = await prisma.outbreak.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         sources: {
           orderBy: { publishedAt: 'desc' },

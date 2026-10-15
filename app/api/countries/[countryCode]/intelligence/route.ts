@@ -6,11 +6,11 @@ const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { countryCode: string } }
+  { params }: { params: Promise<{ countryCode: string }> }
 ) {
   try {
     // countryCode is URL-encoded country name (e.g. "Democratic%20Republic%20of%20Congo")
-    const countryName = decodeURIComponent(params.countryCode);
+    const countryName = decodeURIComponent((await params).countryCode);
 
     const dbOutbreaks = await prisma.outbreak.findMany({
       where: { country: { equals: countryName }, isActive: true },

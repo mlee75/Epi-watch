@@ -1,4 +1,3 @@
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { LiveTvPanel } from '@/components/LiveTvPanel';
@@ -18,15 +17,7 @@ import type { Outbreak, OutbreakStats } from '@/lib/types';
 import { SEVERITY_ORDER, SEVERITY_RULE, normalizeSeverity, severityRank, type SeverityLevel } from '@/lib/severity';
 import { fmtCount, fmtDate, fmtDateShort, fmtNumber, regionLabel } from '@/lib/format';
 
-// MapLibre needs the browser (WebGL, workers), so the map loads client-side.
-const LiveMap = dynamic(() => import('@/components/map/LiveMap'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ height: 640, display: 'grid', placeItems: 'center' }}>
-      <p className="muted" style={{ fontSize: 13 }}>Loading map…</p>
-    </div>
-  ),
-});
+import LiveMap from '@/components/map/LiveMapClient';
 
 async function getInitialData(): Promise<{
   outbreaks: Outbreak[];
@@ -199,7 +190,7 @@ export default async function HomePage() {
             <h1 id="map-title" className="panel-title">Live global health map</h1>
             <span className="panel-meta">Select an item to zoom to street level · Ctrl or ⌘ + scroll to zoom</span>
           </div>
-          <LiveMap outbreaks={outbreaks} hotspots={hotspots} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel />}
+          <LiveMap outbreaks={outbreaks} hotspots={hotspots} aiEnabled={Boolean(process.env.ANTHROPIC_API_KEY)} overlay={<LiveTvPanel key="live-tv" />}
             height="max(560px, calc(100vh - 150px))" autoRotate />
         </section>
 

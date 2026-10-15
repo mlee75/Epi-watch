@@ -243,8 +243,11 @@ export default function LiveMap({ outbreaks, hotspots = [], mode = 'live', highl
     let cancelled = false;
     let map: MlMap | null = null;
     (async () => {
-      const maplibregl = (await import('maplibre-gl')).default;
+      // maplibre-gl 6 ships ES module named exports only (no default export).
+      const maplibregl = await import('maplibre-gl');
       if (cancelled || !containerRef.current) return;
+      // The worker is served as a static module; see scripts/copy-maplibre-worker.mjs.
+      maplibregl.setWorkerUrl('/vendor/maplibre/maplibre-gl-worker.mjs');
       map = new maplibregl.Map({
         container: containerRef.current,
         style: BASEMAP_STYLE,

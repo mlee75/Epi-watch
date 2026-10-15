@@ -1,0 +1,235 @@
+{
+  "_comment": "Curated community names for the graphify knowledge graph. Applied by scripts/graphify-relabel.py. Rules are matched against a community's dominant source file (the file most of its nodes come from), NOT its community number - graphify renumbers communities on every re-cluster. 'requires' is an optional tiebreaker node label, used when one file backs more than one community. First matching rule wins.",
+  "rules": [
+    {
+      "file": "prisma/seed-complete-diseases.ts",
+      "name": "Outbreak Scrapers & Geo Classification"
+    },
+    {
+      "file": "lib/feedText.ts",
+      "name": "Video Ingestion & Feed Text Parsing"
+    },
+    {
+      "file": "components/TravelRiskCalculator.tsx",
+      "name": "Page Shell & Route Components"
+    },
+    {
+      "file": "app/api/countries-map/route.ts",
+      "name": "Prisma Data Access & API Routes"
+    },
+    {
+      "file": "package.json",
+      "requires": "devDependencies",
+      "name": "Build Toolchain (devDependencies)"
+    },
+    {
+      "file": "package.json",
+      "requires": "dependencies",
+      "name": "Runtime Dependencies"
+    },
+    {
+      "file": "tsconfig.json",
+      "name": "TypeScript Compiler Config"
+    },
+    {
+      "file": "lib/travelRiskCalculator.ts",
+      "name": "Travel Risk Scoring Engine"
+    },
+    {
+      "file": "app/news/LiveNewsFeed.tsx",
+      "name": "Live News Feed & Video Sidebar UI"
+    },
+    {
+      "file": "lib/types.ts",
+      "name": "Outbreak Source Types & Modals"
+    },
+    {
+      "file": "components/CountryTooltip.tsx",
+      "name": "Globe Country Card"
+    },
+    {
+      "file": "app/api/news/live-feed/route.ts",
+      "name": "Google News Live Feed API"
+    },
+    {
+      "file": "components/OutbreakDetailPanel.tsx",
+      "name": "Outbreak Detail Panel & AI Overview"
+    },
+    {
+      "file": "app/layout.tsx",
+      "name": "Root Layout & AI Chat"
+    },
+    {
+      "file": "app/outbreaks/LiveOutbreaksDashboard.tsx",
+      "name": "Live Outbreaks Dashboard"
+    },
+    {
+      "file": "instrumentation.ts",
+      "name": "Sentry Instrumentation"
+    },
+    {
+      "file": "next.config.mjs",
+      "name": "Next.js Build Config"
+    },
+    {
+      "file": "app/api/news-proxy/route.ts",
+      "name": "News Proxy Route"
+    },
+    {
+      "file": "app/global-error.tsx",
+      "name": "Global Error Boundary"
+    },
+    {
+      "file": "instrumentation-client.ts",
+      "name": "Client Instrumentation"
+    },
+    {
+      "file": "next-env.d.ts",
+      "name": "Next.js Type Declarations"
+    },
+    {
+      "file": "tailwind.config.ts",
+      "name": "Tailwind Config"
+    },
+    {
+      "file": "vercel.json",
+      "name": "Vercel Cron Schedule"
+    },
+    {
+      "file": "lib/stubs/three-webgpu.js",
+      "name": "WebGPU Stub"
+    },
+    {
+      "file": "postcss.config.js",
+      "name": "PostCSS Config"
+    },
+    {
+      "file": "lib/severity.ts",
+      "name": "Severity Scale & Display Formatting"
+    },
+    {
+      "file": "app/faq/page.tsx",
+      "name": "Methodology, FAQ & Legal Pages"
+    },
+    {
+      "file": "lib/password.ts",
+      "name": "Accounts & Password Hashing"
+    },
+    {
+      "file": "app/api/auth/[...nextauth]/route.ts",
+      "name": "Auth.js Route Handler"
+    },
+    {
+      "file": "react-globe.gl",
+      "name": "react-globe.gl (external)"
+    },
+    {
+      "file": "lib/live/hospital.ts",
+      "name": "Live Hospital Admissions (FluID, NHSN, UKHSA)"
+    },
+    {
+      "file": "lib/live/alerts.ts",
+      "name": "Live Official Alerts & Workforce"
+    },
+    {
+      "file": "lib/diseases.ts",
+      "name": "Disease Reference & Name Normalisation"
+    },
+    {
+      "file": "components/map/LiveMap.tsx",
+      "name": "Live Operations Map (MapLibre globe)"
+    },
+    {
+      "file": "lib/live/emergencies.ts",
+      "name": "Live Emergencies (GDACS, Seattle 911, 7700)"
+    },
+    {
+      "file": "app/signin/AuthForm.tsx",
+      "name": "Sign-in & Sign-up Form"
+    },
+    {
+      "file": "components/Footer.tsx",
+      "name": "Site Footer & Source Links"
+    },
+    {
+      "file": "app/outbreaks/page.tsx",
+      "name": "Outbreaks Page (by disease)"
+    },
+    {
+      "file": "app/account/AccountPanel.tsx",
+      "name": "Account Panel & Deletion"
+    },
+    {
+      "file": "app/videos/VideoIntelFeed.tsx",
+      "name": "Video Feed Page"
+    },
+    {
+      "file": "scripts/build-medical-aircraft.mjs",
+      "name": "Medical Aircraft Registry Builder"
+    },
+    {
+      "file": "maplibre-gl",
+      "name": "maplibre-gl (external)"
+    },
+    {
+      "file": "next",
+      "name": "next (external)"
+    },
+    {
+      "file": "lib/scrapers/video.ts",
+      "name": "Video Ingestion (YouTube channels)"
+    },
+    {
+      "file": "lib/live/cameras.ts",
+      "name": "Live Traffic Cameras (TfL, SDOT)"
+    },
+    {
+      "file": "lib/live/aircraft.ts",
+      "name": "Live Emergency Aircraft (ADS-B)"
+    },
+    {
+      "file": "components/map/dayNight.ts",
+      "name": "Globe Day/Night Compositor"
+    },
+    {
+      "file": "components/map/mapStyle.ts",
+      "name": "Map Style, Colours & Country Matching"
+    },
+    {
+      "file": "lib/quotes.ts",
+      "name": "Entry Screen Quotes"
+    },
+    {
+      "file": "lib/geo.ts",
+      "name": "Geodesy Helpers"
+    },
+    {
+      "file": "components/Header.tsx",
+      "name": "Site Header & Navigation"
+    },
+    {
+      "file": "app/api/ai/overview/route.ts",
+      "name": "AI Overview API"
+    },
+    {
+      "file": "components/SourceCard.tsx",
+      "name": "Source Cards & Sources Modal"
+    },
+    {
+      "file": "app/api/ai/chat/route.ts",
+      "name": "AI Chat API"
+    },
+    {
+      "file": "app/api/countries/[countryCode]/intelligence/route.ts",
+      "name": "Country Intelligence API (legacy)"
+    },
+    {
+      "file": "public/workers/daynight.js",
+      "name": "Day/Night Texture Worker"
+    },
+    {
+      "file": "lib/placeOutbreaks.ts",
+      "name": "Outbreak Hotspot Placement (admin-1)"
+    }
+  ]
+}

@@ -12,10 +12,12 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "graph": "graphify extract . --code-only && graphify cluster-only . --no-label && npm run graph:relabel",
-    "graph:relabel": "python3 scripts/graphify-relabel.py"
+    "graph:relabel": "python3 scripts/graphify-relabel.py",
+    "predev": "node scripts/copy-maplibre-worker.mjs",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.134.0",
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^5.22.0",
     "@sentry/nextjs": "^10.69.0",
@@ -23,25 +25,28 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.0.0",
     "date-fns": "^3.6.0",
-    "maplibre-gl": "^5.24.0",
-    "next": "14.2.21",
+    "maplibre-gl": "^6.14.0",
+    "next": "^15.5.28",
     "next-auth": "^5.0.0-beta.32",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.17.10",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8",
-    "eslint-config-next": "14.2.21",
-    "postcss": "^8.4.49",
+    "eslint-config-next": "^15.5.28",
+    "postcss": "^8.5.23",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.15",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }
