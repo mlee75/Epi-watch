@@ -87,6 +87,8 @@ def _render_one(c: config.Campaign, src: str, start: float, end: float, hook: st
         f"Source: {src} @ {start:.0f}s-{end:.0f}s\n\nCaption:\n{c.post_caption(hook)}\n\n"
         + REVIEW_CHECKLIST.format(focus=focus, platforms=", ".join(c.platforms))
     )
+    if config.settings().get("send_all_to_phone"):
+        config.send_to_phone(out, c.key)
     return out
 
 
@@ -261,6 +263,19 @@ def cmd_frame(a):
     print(out)
 
 
+def cmd_send(a):
+    """Copy kept clips (or one file) to the phone folder."""
+    base = config.phone_dir()
+    if not base:
+        raise SystemExit("phone_folder is empty in settings.yaml.")
+    files = [Path(a.file)] if a.file else sorted((config.OUT / "kept").glob("*/*.mp4"))
+    sent = 0
+    for f in files:
+        if config.send_to_phone(f, f.parent.name):
+            sent += 1
+    print(f"Sent {sent} clips to {base}" if sent else f"Nothing sent. Is iCloud Drive on? ({base.parent})")
+
+
 def cmd_doctor(a):
     import importlib.util
     import shutil
@@ -273,6 +288,9 @@ def cmd_doctor(a):
         found = importlib.util.find_spec(mod) is not None
         print(f"{'OK     ' if found else 'MISSING'} python: {mod}")
         ok &= found
+    pd = config.phone_dir()
+    print(f"{'OK     ' if pd and pd.parent.exists() else 'OPTIONAL'} phone folder: {pd or 'off'}"
+          f"{'' if not pd or pd.parent.exists() else ' (iCloud Drive not found, turn it on in System Settings)'}")
     caps = importlib.util.find_spec("faster_whisper") is not None
     print(f"{'OK     ' if caps else 'OPTIONAL'} captions (faster-whisper){'' if caps else ': pip install -e .[captions]'}")
     cs, _ = config.load()
@@ -319,6 +337,9 @@ def main(argv=None):
     s.add_argument("--top", type=int); s.add_argument("--dry-run", action="store_true")
     s.add_argument("--captions", action=argparse.BooleanOptionalAction, default=None)
     s.set_defaults(f=cmd_run)
+
+    s = sub.add_parser("send", help="copy kept clips to your phone folder (iCloud Drive)")
+    s.add_argument("file", nargs="?"); s.set_defaults(f=cmd_send)
 
     s = sub.add_parser("frame", help="save one frame of a VOD to find the facecam box")
     s.add_argument("source"); s.add_argument("--at", type=float, default=600); s.set_defaults(f=cmd_frame)

@@ -18,3 +18,5 @@ Run every command with `.venv/bin/clipper`. If `.venv` is missing, run `/setup` 
 8. Start the review app in the background: `clipper review` (it opens http://127.0.0.1:8765). Tell Matthias how many clips are waiting.
 
 Never post anything. Posting is his job.
+
+Every rendered clip and a `_caption.txt` file are also copied to iCloud Drive > Clips > <campaign> (`phone_folder` in settings.yaml), so Matthias can pick them up in the Files app on his iPhone and post from the phone. Tell him how many landed there.

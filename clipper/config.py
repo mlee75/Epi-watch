@@ -18,6 +18,8 @@ CAMPAIGNS = ROOT / "campaigns"
 SETTINGS = ROOT / "settings.yaml"
 
 DEFAULTS = {
+    "phone_folder": "",
+    "send_all_to_phone": False,
     "creator_fee": 0.10,
     "clip": {"top": 6, "pre": 20, "post": 10, "min_gap": 45, "chat_weight": 1.0},
     "render": {"hook_seconds": 4, "cta_seconds": 3, "short_source": 75},
@@ -123,3 +125,26 @@ def save_raw(key: str, data: dict, folder: Path | None = None) -> Path:
 def read_raw(key: str, folder: Path | None = None) -> dict | None:
     p = campaign_path(key, folder)
     return yaml.safe_load(p.read_text()) if p.exists() else None
+
+
+def phone_dir() -> Path | None:
+    raw = settings().get("phone_folder") or ""
+    return Path(raw).expanduser() if raw else None
+
+
+def send_to_phone(clip: Path, campaign: str) -> Path | None:
+    """Copy a clip and its caption file to the phone folder (iCloud Drive by default)."""
+    import shutil
+    base = phone_dir()
+    if not base:
+        return None
+    if not base.parent.exists():  # no iCloud Drive on this machine
+        return None
+    dst = base / campaign
+    dst.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(clip, dst / clip.name)
+    note = clip.with_suffix(".txt")
+    if note.exists():
+        caption = note.read_text().split("Caption:\n", 1)[-1].split("\n\n", 1)[0]
+        (dst / f"{clip.stem}_caption.txt").write_text(caption + "\n")
+    return dst / clip.name

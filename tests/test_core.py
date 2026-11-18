@@ -139,3 +139,12 @@ def test_wrap_keeps_lines_short():
     from clipper.render import wrap
     out = wrap("FOLLOW BOBBY VANRIPER ON TWITCH", 18)
     assert all(len(l) <= 18 for l in out.split("\n")) and out.count("\n") == 1
+
+
+def test_send_to_phone(tmp_path, monkeypatch):
+    phone = tmp_path / "cloud" / "Clips"; phone.parent.mkdir()
+    monkeypatch.setattr(config, "phone_dir", lambda: phone)
+    clip = tmp_path / "a.mp4"; clip.write_bytes(b"x")
+    clip.with_suffix(".txt").write_text("Source: s\n\nCaption:\nNo way #Tomo\n\nBefore posting")
+    out = config.send_to_phone(clip, "tomo")
+    assert out.exists() and (phone / "tomo" / "a_caption.txt").read_text() == "No way #Tomo\n"

@@ -59,6 +59,8 @@ def move_clip(campaign: str, file: str, to: str) -> None:
             for p in (src, src.with_suffix(".txt")):
                 if p.exists():
                     shutil.move(str(p), dst_dir / p.name)
+            if to == "kept":
+                config.send_to_phone(dst_dir / file, campaign)
             return
     raise FileNotFoundError(file)
 

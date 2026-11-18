@@ -2,6 +2,11 @@
 
 cookies_from_browser: ""   # set to chrome or safari on your Mac if YouTube asks to sign in
 
+# Clips you keep are copied here with their caption, so you can post from your phone.
+# Default is iCloud Drive > Clips (Files app on iPhone). Set "" to turn off.
+phone_folder: "~/Library/Mobile Documents/com~apple~CloudDocs/Clips"
+send_all_to_phone: true    # every rendered clip goes to the phone folder; false = only clips you keep
+
 creator_fee: 0.10        # Content Rewards fee on CPM payouts, taken at settlement
 
 clip:
