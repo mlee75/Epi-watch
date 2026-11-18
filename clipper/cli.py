@@ -46,9 +46,10 @@ def _mark_processed(campaign: str, vod_id: str) -> None:
 
 # ---------- core steps ----------
 
-def _find(src: str, c: config.Campaign | None, top: int | None, chat: str | None) -> list[highlights.Candidate]:
+def _find(src: str, c: config.Campaign | None, top: int | None, chat: str | None,
+          media: Path | None = None) -> list[highlights.Candidate]:
     opts = c.opts("clip") if c else config.settings()["clip"]
-    media = Path(src) if _is_local(src) else sources.audio(src)
+    media = media or (Path(src) if _is_local(src) else sources.audio(src))
     chat_file = None
     if chat == "auto" and not _is_local(src) and "youtu" in src:
         from . import chat as chatmod
@@ -78,8 +79,9 @@ def _render_one(c: config.Campaign, src: str, start: float, end: float, hook: st
         if use_caps:
             from .captions import transcribe
             srt = transcribe(media, Path(tmp) / "subs.srt", cap_opts["model"], cap_opts["language"])
-        render.render(media, out, facecam=facecam, hook=hook, srt=srt,
-                      hook_seconds=c.opts("render")["hook_seconds"])
+        ro = c.opts("render")
+        render.render(media, out, facecam=facecam, hook=hook, srt=srt, hook_seconds=ro["hook_seconds"],
+                      handle=c.handle, cta=c.cta, cta_seconds=ro["cta_seconds"])
     focus = c.streamer or "The creator"
     out.with_suffix(".txt").write_text(
         f"Source: {src} @ {start:.0f}s-{end:.0f}s\n\nCaption:\n{c.post_caption(hook)}\n\n"
@@ -95,8 +97,14 @@ def _facecam(c: config.Campaign, arg: str | None) -> render.Facecam | None:
 
 def clip_vod(c: config.Campaign, src: str, top: int | None, chat: str | None,
              facecam: str | None, tag: str, captions: bool | None) -> list[Path]:
-    cands = _find(src, c, top, chat)
     fc = _facecam(c, facecam)
+    media = Path(src) if _is_local(src) else sources.audio(src)
+    length = render._duration(media)
+    if 0 < length <= c.opts("render")["short_source"]:  # a ready-made clip (e.g. Twitch Clips): use it whole
+        out = _render_one(c, src, 0.0, length, "", fc, f"{tag}01", captions)
+        print(f"  short source ({length:.0f}s) rendered whole -> {out.name}")
+        return [out]
+    cands = _find(src, c, top, chat, media=media)
     outs = []
     for i, cand in enumerate(cands, 1):
         out = _render_one(c, src, cand.start, cand.end, "", fc, f"{tag}{i:02d}", captions)

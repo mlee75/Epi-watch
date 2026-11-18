@@ -16,6 +16,6 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 pip install -q --upgrade pip
-pip install -q -e '.[dev]'
+pip install -q -e '.[dev,captions]'   # captions: both current briefs require them
 pip install -q --upgrade yt-dlp   # YouTube changes often, newest yt-dlp matters
 clipper doctor

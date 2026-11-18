@@ -13,6 +13,8 @@ clip:
 
 render:
   hook_seconds: 4        # how long the hook text stays on screen
+  cta_seconds: 3         # how long the call to action shows at the end
+  short_source: 75       # sources shorter than this (Twitch clips) are rendered whole
 
 captions:
   enabled: false         # burn word-by-word captions (needs: pip install -e '.[captions]')

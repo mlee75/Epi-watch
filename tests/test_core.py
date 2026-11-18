@@ -133,3 +133,9 @@ def test_settings_override():
 
 def test_caption_without_streamer():
     assert camp(streamer="", hashtags=["#x"]).post_caption() == "T #x"
+
+
+def test_wrap_keeps_lines_short():
+    from clipper.render import wrap
+    out = wrap("FOLLOW BOBBY VANRIPER ON TWITCH", 18)
+    assert all(len(l) <= 18 for l in out.split("\n")) and out.count("\n") == 1

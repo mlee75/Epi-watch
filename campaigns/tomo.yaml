@@ -12,14 +12,30 @@ platforms:
 - youtube
 streamer: Tomo
 hashtags:
-- '#Tomo'
-- '#GTA6'
-- '#GTAVI'
+- '#tomovids'
+- '#gta6'
+- '#tomo'
+- '#gtavi'
+- '#gaming'
+- '#funnymoments'
 sources:
 - https://www.youtube.com/@Tomovids/streams
 - https://www.youtube.com/@Tomovids/videos
-notes: Joined 2026-11-18. Any GTA VI video/stream featuring Tomo. Rules in Clipping Nation Notion page. Payouts require joining
-  the Clipping Nation Discord.
+notes: 'Rules read 2026-11-18. Source: Tomo GTA VI livestreams or GTA VI videos only (not GTA 5 RP). English only, 40%+ Tier
+  1 audience (US, UK, CA, AU): at 2,000 views send a screenshot of the country breakdown to the Clipping Nation Discord support
+  chat, or no approval. Captions readable without sound. CTA required: mention Tomo and "subscribe to Tomo on YouTube". Show
+  @Tomovids on screen or in caption. Required tags #tomovids #gta6. Likes visible. 1%+ engagement. Keep clips live 30 days.
+  Same clip max 5 times. No AI. Properly edited only, no raw screen recordings. Submit within 30 min of posting. New accounts:
+  3-day warm-up first (see Account Warm-Up Guide). Payout needs Clipping Nation Discord. Priority: funny moments and first
+  reactions to GTA VI.'
 title_filter:
-- GTA
-since: "2026-11-18"
+- GTA 6
+- GTA VI
+- GTA6
+since: '2026-11-01'
+handle: '@Tomovids'
+cta: SUBSCRIBE TO TOMO ON YOUTUBE
+captions:
+  enabled: true
+rules_url: https://app.notion.com/p/Tomo-GTA-VI-Clipping-Requirements-Guide-41a582c82d888120a0b7f74a3f0d0b84
+caption_cta: Subscribe to Tomo on YouTube!

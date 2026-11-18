@@ -12,14 +12,25 @@ platforms:
 - youtube
 streamer: Bobby VanRiper
 hashtags:
-- '#BobbyVanRiper'
-- '#GTA6'
-- '#GTAVI'
+- '#bobbyvanriper'
+- '#gta6'
+- '#twitch'
+- '#gaming'
 sources:
+- https://www.twitch.tv/bobby_vanriper/clips?filter=clips&range=7d
 - https://www.twitch.tv/bobby_vanriper/videos?filter=archives
-- https://www.youtube.com/@bobbyvanriper/videos
-notes: Joined 2026-11-18. Any GTA VI video/stream featuring Bobby. Payouts require joining the Clipping Nation Discord. 5
-  clippers, 26.8K approved views so far.
+notes: 'Rules read 2026-11-18. CONFLICT: the Content Rewards brief says GTA VI streams only, the Notion rules say any Bobby
+  stream or social media. Kept title_filter GTA until Clipping Nation confirms in Discord. English, NO Tier 1 requirement.
+  Tag #bobbyvanriper and show twitch.tv/bobby_vanriper on screen or caption. CTA: "follow Bobby Vanriper on Twitch". Captions
+  readable without sound. Likes visible. 1%+ engagement. Live 30 days. Same clip max 5 times. No AI. Properly edited only.
+  Submit within 30 min. Tip from brief: his Twitch Clips tab has the best moments already found. Streamer or brainrot edit
+  style works best.'
 title_filter:
 - GTA
-since: "2026-11-18"
+since: '2026-11-18'
+handle: twitch.tv/bobby_vanriper
+cta: FOLLOW BOBBY VANRIPER ON TWITCH
+captions:
+  enabled: true
+rules_url: https://app.notion.com/p/Bobby-Van-Riper-Clipping-Campaign-Requirements-Guide-414582c82d8881d5b28bdd4235a1be82
+caption_cta: Follow Bobby Vanriper on Twitch!

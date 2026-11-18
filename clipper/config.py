@@ -20,7 +20,7 @@ SETTINGS = ROOT / "settings.yaml"
 DEFAULTS = {
     "creator_fee": 0.10,
     "clip": {"top": 6, "pre": 20, "post": 10, "min_gap": 45, "chat_weight": 1.0},
-    "render": {"hook_seconds": 4},
+    "render": {"hook_seconds": 4, "cta_seconds": 3, "short_source": 75},
     "captions": {"enabled": False, "model": "small", "language": "en"},
 }
 
@@ -55,7 +55,11 @@ class Campaign:
     title_filter: list[str] = field(default_factory=list)  # VOD title must contain one of these (e.g. ["GTA"])
     facecam: str = ""                 # "x,y,w,h" fractions, found once per streamer
     since: str = ""                   # only clip VODs published on/after this date, YYYY-MM-DD
+    handle: str = ""                  # on-screen creator handle, e.g. "@Tomovids"
+    cta: str = ""                     # on-screen call to action at the end, e.g. "SUBSCRIBE TO TOMO ON YOUTUBE"
+    caption_cta: str = ""             # call to action sentence for the post caption
     notes: str = ""
+    rules_url: str = ""               # full rules page (Notion etc.)
     live: dict = field(default_factory=dict)
     clip: dict = field(default_factory=dict)       # overrides settings.clip
     render: dict = field(default_factory=dict)     # overrides settings.render
@@ -81,7 +85,9 @@ class Campaign:
         lead = hook.strip() or self.streamer or self.name
         if self.streamer and self.streamer.lower() not in lead.lower():
             lead = f"{lead} | {self.streamer}"
-        return f"{lead} {' '.join(self.hashtags)}".strip()
+        cta = f" {self.caption_cta}" if self.caption_cta else ""
+        handle = f" {self.handle}" if self.handle and self.handle not in lead else ""
+        return f"{lead}{handle}{cta} {' '.join(self.hashtags)}".strip()
 
 
 FIELDS = set(Campaign.__dataclass_fields__) - {"key"}
