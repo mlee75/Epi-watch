@@ -1,6 +1,6 @@
 # One entry per Content Rewards campaign.
 # Rates and caps copied from the live campaign pages on 2026-11-18. Re-check before trusting them.
-# status: to_join | joined | watch | avoid
+# status: joined | joined | watch | avoid
 
 creator_fee: 0.10   # Content Rewards CPM creator fee, taken at settlement
 
@@ -9,7 +9,7 @@ campaigns:
     name: TOMO GTA VI Clipping
     url: https://contentrewards.com/c/campaigns/df6de26f-86ec-4782-b818-1fc8053b99a4
     owner: Clipping Nation
-    status: to_join
+    status: joined
     rate_per_1k: 2.00
     min_payout: 4.00
     max_payout: 150.00
@@ -20,13 +20,13 @@ campaigns:
     sources:
       - https://www.youtube.com/@Tomovids/streams
       - https://www.youtube.com/@Tomovids/videos
-    notes: Goal is new subscribers to his YouTube. Full brief hidden until joined.
+    notes: Joined 2026-11-18. Any GTA VI video/stream featuring Tomo. Rules in Clipping Nation Notion page. Payouts require joining the Clipping Nation Discord.
 
   bobby:
     name: BOBBY VAN RIPER GTA VI Clipping
     url: https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c
     owner: Clipping Nation
-    status: to_join
+    status: joined
     rate_per_1k: 1.00
     min_payout: 1.95
     max_payout: 250.00
@@ -37,22 +37,22 @@ campaigns:
     sources:
       - https://www.twitch.tv/bobby_vanriper/videos?filter=archives
       - https://www.youtube.com/@bobbyvanriper/videos
-    notes: Low payout floor, good for new accounts.
+    notes: Joined 2026-11-18. Any GTA VI video/stream featuring Bobby. Payouts require joining the Clipping Nation Discord. 5 clippers, 26.8K approved views so far.
 
   sypherpk:
     name: SypherPK $7,500 Clipping Campaign
     url: https://contentrewards.com/c/campaigns/f2c529a0-6777-4e8a-b50b-4c8bd4e4d90f
     owner: Reach
-    status: to_join
+    status: joined
     rate_per_1k: 2.00
     min_payout: 20.00
     max_payout: 500.00
     budget_total: 7500
     platforms: [tiktok, instagram, youtube, x]
-    streamer: SypherPK
-    hashtags: ["#SypherPK"]
+    streamer: Sypher
+    hashtags: ["#fortnitecreative", "#uefn"]
     sources: []   # Nov 15 VODs of Sypher, Replays, Maddynf: links are in the reference files after joining
-    notes: Not GTA. Clips under 10K views earn $0. Reach rules apply (name + hashtag in caption, no logos, no AI, submit within 30 min).
+    notes: Joined 2026-11-18. Fortnite Creative (UEFN) promo, not GTA. Only Nov 15 VODs, all 3 creators (Sypher, Replays, Maddynf) playing together, at listed timestamps (Sypher 45:50+, Replays 1:06:07-3:03:10, Maddynf 0:25:00-2:22:00). 50%+ English-country audience. Niche must match account. Clips under 10K views earn $0.
 
   ruckus_dasgasd3m:
     name: Dasgasd3m x RUCKUS | GTA 6
