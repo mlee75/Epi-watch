@@ -27,6 +27,7 @@ class Campaign:
     hashtags: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     notes: str = ""
+    live: dict = field(default_factory=dict)
 
     @property
     def views_to_min(self) -> int:
@@ -38,8 +39,8 @@ class Campaign:
 
     def post_caption(self, hook: str = "") -> str:
         """Caption text with the streamer name and hashtags most briefs require."""
-        lead = hook.strip() or f"{self.streamer} in GTA 6"
-        if self.streamer.lower() not in lead.lower():
+        lead = hook.strip() or (f"{self.streamer} in GTA 6" if self.streamer else self.name)
+        if self.streamer and self.streamer.lower() not in lead.lower():
             lead = f"{lead} | {self.streamer}"
         return f"{lead} {' '.join(self.hashtags)}".strip()
 

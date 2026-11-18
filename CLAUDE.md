@@ -4,6 +4,17 @@ Matthias runs paid clipping campaigns on Content Rewards (contentrewards.com, on
 This repo finds highlight moments in streamer VODs, renders 9:16 shorts, and tracks
 posts and payouts. Read `README.md` for the pipeline and `campaigns.yaml` for live campaigns.
 
+## How Matthias uses this repo
+He does not use the terminal. He opens this folder in Claude Code and asks in plain words.
+Map requests to the slash commands in `.claude/commands/`:
+- "set it up" / something broken -> `/setup`
+- a Content Rewards link -> `/add-campaign <link>`
+- "clip Tomo" / "clip this stream <link>" -> `/clip <campaign> [link]`
+- "show me the clips" -> `/review` (local app at http://127.0.0.1:8765)
+- "how much did I make" -> `/stats`
+Run the CLI as `.venv/bin/clipper ...`. Do the work yourself, then report in a few short lines.
+Media downloads only work on his Mac (YouTube blocks cloud IPs).
+
 ## Hard rules (campaigns ban accounts for these, one strike)
 - Never auto-post to TikTok, Instagram, YouTube or X. Clips go to `out/review/`. Matthias posts.
 - Never buy, bot, loop or inflate views. Never repost the same clip, never collab-post.

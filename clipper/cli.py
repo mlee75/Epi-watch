@@ -127,6 +127,52 @@ def cmd_payout(a):
     print(f"{a.views:,} views on {c.key}: gross ${p.gross:.2f}, net ${p.net:.2f}{flag}")
 
 
+def cmd_add(a):
+    from .campaign_import import import_campaign
+    key, e = import_campaign(a.url, a.key)
+    print(f"Added '{key}': {e['name']} by {e['owner']}")
+    print(f"  ${e['rate_per_1k']:.2f}/1K, min ${e['min_payout']:g}, max ${e['max_payout']:g}, budget ${e['budget_total']:,.0f}")
+    print(f"  platforms: {', '.join(e['platforms'])}")
+    print(f"  sources: {', '.join(e['sources']) or 'none found, add them to campaigns.yaml'}")
+    print("  Still to fill in campaigns.yaml: streamer, hashtags (from the brief after joining).")
+
+
+def cmd_review(a):
+    from .review_app import serve
+    serve(a.port, not a.no_browser)
+
+
+def cmd_frame(a):
+    """Save one frame so Claude (or you) can locate the facecam box."""
+    import subprocess
+    if _is_local(a.source):
+        media, t = Path(a.source), a.at
+    else:
+        media, t = sources.segment(a.source, a.at, a.at + 3), 1
+    out = config.DATA / "frames" / f"frame_{int(a.at)}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(t), "-i", str(media),
+                    "-frames:v", "1", "-vf", "scale=1280:-2", str(out)], check=True)
+    print(out)
+
+
+def cmd_doctor(a):
+    import shutil
+    import importlib.util
+    ok = True
+    for tool in ("ffmpeg", "ffprobe"):
+        found = shutil.which(tool)
+        print(f"{'OK ' if found else 'MISSING'} {tool} {found or '(brew install ffmpeg)'}")
+        ok &= bool(found)
+    for mod in ("yt_dlp", "numpy", "yaml"):
+        found = importlib.util.find_spec(mod) is not None
+        print(f"{'OK ' if found else 'MISSING'} python: {mod}")
+        ok &= found
+    cs, _ = config.load()
+    print(f"OK  {len(cs)} campaigns in campaigns.yaml" if cs else "MISSING campaigns")
+    print("All good." if ok else "Fix the MISSING lines, then run clipper doctor again.")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="clipper")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -167,6 +213,18 @@ def main(argv=None):
 
     s = sub.add_parser("payout", help="what N views earn on a campaign")
     s.add_argument("campaign"); s.add_argument("views", type=int); s.set_defaults(f=cmd_payout)
+
+    s = sub.add_parser("add", help="import any Content Rewards campaign from its link")
+    s.add_argument("url"); s.add_argument("--key", help="short name, e.g. tomo"); s.set_defaults(f=cmd_add)
+
+    s = sub.add_parser("review", help="open the local review app")
+    s.add_argument("--port", type=int, default=8765); s.add_argument("--no-browser", action="store_true")
+    s.set_defaults(f=cmd_review)
+
+    sub.add_parser("doctor", help="check the install").set_defaults(f=cmd_doctor)
+
+    s = sub.add_parser("frame", help="save one frame of a VOD to find the facecam box")
+    s.add_argument("source"); s.add_argument("--at", type=float, default=600); s.set_defaults(f=cmd_frame)
 
     a = ap.parse_args(argv)
     a.f(a)

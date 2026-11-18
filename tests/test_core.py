@@ -83,3 +83,40 @@ def test_youtube_chat_lines(tmp_path):
 def test_srt_groups_words():
     srt = to_srt([(0.0, 0.4, "no"), (0.4, 0.8, "way"), (0.8, 1.2, "bro"), (1.2, 1.6, "what")])
     assert "NO WAY BRO" in srt and "WHAT" in srt
+
+
+def _fake_page(obj):
+    import json
+    payload = json.dumps({"state": {"data": obj}})
+    return '<script>self.__next_f.push([1,' + json.dumps(payload) + '])</script>'
+
+
+def test_import_campaign(tmp_path):
+    import shutil
+    from clipper.campaign_import import import_campaign
+    cid = "df6de26f-86ec-4782-b818-1fc8053b99a4"
+    obj = {"id": cid, "name": "Test Streamer GTA VI", "description": "Clips from https://www.youtube.com/@test now",
+           "organization": {"name": "Agency"}, "status": "active",
+           "metrics": {"budgetSpentCents": 5000, "creatorCount": 3},
+           "configuration": {"budget": 100000, "payoutModel": [
+               {"platform": "tiktok", "rate": 150, "minPayout": 300, "maxPayout": 10000},
+               {"platform": "twitter", "rate": 150, "minPayout": 300, "maxPayout": 10000}]}}
+    y = tmp_path / "c.yaml"
+    shutil.copy(config.ROOT / "campaigns.yaml", y)
+    key, e = import_campaign(f"https://contentrewards.com/c/campaigns/{cid}", "t1", html=_fake_page(obj), path=y)
+    assert e["rate_per_1k"] == 1.5 and e["min_payout"] == 3 and e["max_payout"] == 100
+    assert e["platforms"] == ["tiktok", "x"] and e["sources"] == ["https://www.youtube.com/@test"]
+    assert e["live"]["clippers"] == 3
+    cs, _ = config.load(y)
+    assert cs["t1"].budget_total == 1000
+
+
+def test_review_move(tmp_path, monkeypatch):
+    from clipper import review_app
+    monkeypatch.setattr(config, "OUT", tmp_path)
+    d = tmp_path / "review" / "tomo"; d.mkdir(parents=True)
+    (d / "a.mp4").write_bytes(b"x"); (d / "a.txt").write_text("Caption:\nhi #Tomo\n\nBefore posting")
+    clips = review_app.list_clips()
+    assert clips[0]["caption"] == "hi #Tomo"
+    review_app.move_clip("tomo", "a.mp4", "kept")
+    assert (tmp_path / "kept" / "tomo" / "a.mp4").exists() and (tmp_path / "kept" / "tomo" / "a.txt").exists()

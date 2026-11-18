@@ -3,6 +3,16 @@
 Semi-automated pipeline for paid GTA 6 clipping campaigns on Content Rewards.
 The machine finds moments and renders shorts. You review, post and submit.
 
+## Using it (no terminal)
+
+1. Open this folder in Claude Code (desktop app: open folder `~/Projects/gta6-clipper`).
+2. Type `/setup` once.
+3. Then ask in plain words, or use the commands:
+   - `/add-campaign <Content Rewards link>`: imports rates, caps, budget, platforms and sources, then reads the brief
+   - `/clip tomo`: picks the latest allowed stream, finds the facecam, renders shorts
+   - `/review`: opens the review app. Watch, copy caption, keep or reject, download, paste the post link after posting
+   - `/stats`: views, estimated earnings, unsubmitted posts, budgets running low
+
 ## Pipeline
 
 ```

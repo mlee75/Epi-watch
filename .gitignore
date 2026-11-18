@@ -10,3 +10,5 @@ data/chat/
 *.mkv
 *.webm
 *.m4a
+data/live/
+data/frames/

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper review</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --line:#2a2f3a; --text:#e8eaef; --mut:#8b93a5; --ok:#2fbf71; --bad:#e5484d; --acc:#ff7a1a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:16px; padding:14px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  header h1 { font-size:16px; margin:0; }
+  nav button { background:none; border:1px solid var(--line); color:var(--mut); padding:6px 12px; border-radius:999px; cursor:pointer; margin-right:6px; }
+  nav button.on { color:var(--text); border-color:var(--acc); }
+  .count { color:var(--mut); font-size:12px; margin-left:4px; }
+  main { padding:20px 24px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  video { width:100%; aspect-ratio:9/16; max-height:62vh; background:#000; display:block; object-fit:contain; }
+  .body { padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .meta { color:var(--mut); font-size:12px; }
+  textarea, input, select { width:100%; background:#0c0e12; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px; font:inherit; }
+  textarea { min-height:58px; resize:vertical; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  button.act { border:0; border-radius:8px; padding:9px 10px; font-weight:600; cursor:pointer; color:#fff; background:#2c3240; }
+  button.keep { background:var(--ok); } button.rej { background:var(--bad); } button.pri { background:var(--acc); }
+  details { color:var(--mut); font-size:12px; } details pre { white-space:pre-wrap; margin:6px 0 0; }
+  .empty { color:var(--mut); padding:40px 0; text-align:center; }
+  table { width:100%; border-collapse:collapse; } td, th { padding:8px; border-bottom:1px solid var(--line); text-align:left; font-size:13px; }
+  th { color:var(--mut); font-weight:500; }
+  .big { font-size:28px; font-weight:700; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#2c3240; padding:10px 16px; border-radius:8px; display:none; max-width:90vw; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Clipper</h1>
+  <nav>
+    <button data-tab="review" class="on">To review<span class="count" id="n-review"></span></button>
+    <button data-tab="kept">To post<span class="count" id="n-kept"></span></button>
+    <button data-tab="stats">Posted &amp; earnings</button>
+    <button data-tab="rejected">Rejected<span class="count" id="n-rejected"></span></button>
+  </nav>
+</header>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+<script>
+let tab = "review", clips = [];
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg, ms=3500) { const t=$("#toast"); t.innerHTML=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", ms); }
+async function api(path, body) {
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const j = await r.json(); if (j.error) { toast("Error: " + esc(j.error), 6000); throw new Error(j.error); } return j;
+}
+async function load() {
+  clips = await api("/api/clips");
+  for (const s of ["review","kept","rejected"]) $("#n-"+s).textContent = clips.filter(c=>c.state===s).length || "";
+  render();
+}
+function card(c) {
+  const media = `/media/${c.state}/${encodeURIComponent(c.campaign)}/${encodeURIComponent(c.file)}`;
+  const opts = c.platforms.map(p=>`<option>${esc(p)}</option>`).join("");
+  let actions = "";
+  if (c.state === "review") actions = `<div class="row"><button class="act keep" data-move="kept">Keep</button><button class="act rej" data-move="rejected">Reject</button></div>`;
+  if (c.state === "kept") actions = `
+    <a class="act" href="${media}" download style="text-align:center;text-decoration:none;color:#fff;background:#2c3240;border-radius:8px;padding:9px">Download video</a>
+    <div class="row"><select class="plat">${opts}</select><input class="url" placeholder="Paste the post link after posting"></div>
+    <button class="act pri" data-posted>I posted it</button>
+    ${c.posted ? '<div class="meta">Logged at least once.</div>' : ""}
+    <button class="act" data-move="review">Back to review</button>`;
+  if (c.state === "rejected") actions = `<button class="act" data-move="review">Restore</button>`;
+  return `<div class="card" data-c="${esc(c.campaign)}" data-f="${esc(c.file)}">
+    <video src="${media}" controls preload="metadata" playsinline></video>
+    <div class="body">
+      <div><b>${esc(c.campaign_name)}</b><div class="meta">${esc(c.file)}</div></div>
+      <textarea class="cap">${esc(c.caption)}</textarea>
+      <button class="act" data-copy>Copy caption</button>
+      <details><summary>Rules checklist</summary><pre>${esc(c.note.split("Before posting")[1] ? "Before posting" + c.note.split("Before posting")[1] : c.note)}</pre></details>
+      ${actions}
+    </div></div>`;
+}
+async function render() {
+  const m = $("#main");
+  if (tab === "stats") {
+    const s = await api("/api/stats");
+    const rows = s.rows.map(r => `<tr><td>${esc(r.posted_at)}</td><td>${esc(r.campaign)}</td><td>${esc(r.platform)}</td>
+      <td><a href="${esc(r.post_url)}" target="_blank">open</a></td><td>${Number(r.views||0).toLocaleString()}</td><td>$${esc(r.net_usd||"0.00")}</td>
+      <td>${r.submitted==="yes" ? "yes" : `<button class="act pri" data-sub="${esc(r.post_url)}">Mark submitted</button>`}</td></tr>`).join("");
+    m.innerHTML = `<div class="row" style="align-items:center;margin-bottom:16px">
+      <div><div class="meta">Estimated net earnings</div><div class="big">$${s.total_net.toFixed(2)}</div></div>
+      <div><div class="meta">Posts not yet submitted</div><div class="big">${s.unsubmitted}</div></div>
+      <div style="flex:0"><button class="act pri" id="refresh">Refresh views</button></div></div>
+      ${s.rows.length ? `<table><tr><th>Posted</th><th>Campaign</th><th>Platform</th><th>Post</th><th>Views</th><th>Net</th><th>Submitted</th></tr>${rows}</table>`
+        : '<div class="empty">No posts logged yet.</div>'}`;
+    $("#refresh").onclick = async () => { toast("Checking view counts..."); await api("/api/refresh", {}); render(); };
+    m.querySelectorAll("[data-sub]").forEach(b => b.onclick = async () => { await api("/api/submitted", {post_url:b.dataset.sub}); render(); });
+    return;
+  }
+  const list = clips.filter(c => c.state === tab);
+  m.innerHTML = list.length ? `<div class="grid">${list.map(card).join("")}</div>`
+    : `<div class="empty">${tab==="review" ? "No clips waiting. Ask Claude Code to clip a stream." : "Nothing here."}</div>`;
+  m.querySelectorAll(".card").forEach(el => {
+    const c = el.dataset.c, f = el.dataset.f;
+    el.querySelectorAll("[data-move]").forEach(b => b.onclick = async () => { await api("/api/move", {campaign:c, file:f, to:b.dataset.move}); load(); });
+    const cp = $("[data-copy]", el); if (cp) cp.onclick = async () => { await navigator.clipboard.writeText($(".cap", el).value); toast("Caption copied"); };
+    const po = $("[data-posted]", el); if (po) po.onclick = async () => {
+      const url = $(".url", el).value.trim(); if (!url) return toast("Paste the post link first");
+      const r = await api("/api/posted", {campaign:c, platform:$(".plat", el).value, post_url:url, file:f});
+      toast(`Logged. Now submit it in Content Rewards: <a href="${esc(r.submit_url)}" target="_blank">open campaign</a>`, 12000);
+      window.open(r.submit_url, "_blank"); load();
+    };
+  });
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.remove("on")); b.classList.add("on"); tab = b.dataset.tab; render();
+});
+load();
+</script>
+</body>
+</html>
