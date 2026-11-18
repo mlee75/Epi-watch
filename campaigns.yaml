@@ -1,0 +1,70 @@
+# One entry per Content Rewards campaign.
+# Rates and caps copied from the live campaign pages on 2026-11-18. Re-check before trusting them.
+# status: to_join | joined | watch | avoid
+
+creator_fee: 0.10   # Content Rewards CPM creator fee, taken at settlement
+
+campaigns:
+  tomo:
+    name: TOMO GTA VI Clipping
+    url: https://contentrewards.com/c/campaigns/df6de26f-86ec-4782-b818-1fc8053b99a4
+    owner: Clipping Nation
+    status: to_join
+    rate_per_1k: 2.00
+    min_payout: 4.00
+    max_payout: 150.00
+    budget_total: 1000
+    platforms: [tiktok, instagram, youtube]
+    streamer: Tomo
+    hashtags: ["#Tomo", "#GTA6", "#GTAVI"]
+    sources:
+      - https://www.youtube.com/@Tomovids/streams
+      - https://www.youtube.com/@Tomovids/videos
+    notes: Goal is new subscribers to his YouTube. Full brief hidden until joined.
+
+  bobby:
+    name: BOBBY VAN RIPER GTA VI Clipping
+    url: https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c
+    owner: Clipping Nation
+    status: to_join
+    rate_per_1k: 1.00
+    min_payout: 1.95
+    max_payout: 250.00
+    budget_total: 1000
+    platforms: [tiktok, instagram, youtube]
+    streamer: Bobby VanRiper
+    hashtags: ["#BobbyVanRiper", "#GTA6", "#GTAVI"]
+    sources:
+      - https://www.twitch.tv/bobby_vanriper/videos?filter=archives
+      - https://www.youtube.com/@bobbyvanriper/videos
+    notes: Low payout floor, good for new accounts.
+
+  sypherpk:
+    name: SypherPK $7,500 Clipping Campaign
+    url: https://contentrewards.com/c/campaigns/f2c529a0-6777-4e8a-b50b-4c8bd4e4d90f
+    owner: Reach
+    status: to_join
+    rate_per_1k: 2.00
+    min_payout: 20.00
+    max_payout: 500.00
+    budget_total: 7500
+    platforms: [tiktok, instagram, youtube, x]
+    streamer: SypherPK
+    hashtags: ["#SypherPK"]
+    sources: []   # Nov 15 VODs of Sypher, Replays, Maddynf: links are in the reference files after joining
+    notes: Not GTA. Clips under 10K views earn $0. Reach rules apply (name + hashtag in caption, no logos, no AI, submit within 30 min).
+
+  ruckus_dasgasd3m:
+    name: Dasgasd3m x RUCKUS | GTA 6
+    url: https://contentrewards.com/c/campaigns/051002dd-5c46-43d0-a446-43f2957ba3a9
+    owner: Ruckus
+    status: watch
+    rate_per_1k: 1.00
+    min_payout: 10.00
+    max_payout: 100.00
+    budget_total: 1000
+    platforms: [tiktok, youtube]
+    streamer: Dom (Dasgasd3m)
+    hashtags: ["#GTA6"]
+    sources: []
+    notes: Opens Nov 19. Requires a GTA 6-specific account.

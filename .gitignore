@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+out/
+data/audio/
+data/segments/
+data/chat/
+*.mp4
+*.mkv
+*.webm
+*.m4a
