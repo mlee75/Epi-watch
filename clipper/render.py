@@ -36,7 +36,7 @@ def _escape_path(p: Path) -> str:
     return str(p).replace("\\", "/").replace(":", r"\:").replace("'", r"\'")
 
 
-def build_filter(facecam: Facecam | None, hook_file: Path | None, srt: Path | None) -> str:
+def build_filter(facecam: Facecam | None, hook_file: Path | None, srt: Path | None, hook_seconds: float = 4) -> str:
     if facecam:
         cam_h = 640
         chain = (
@@ -62,7 +62,7 @@ def build_filter(facecam: Facecam | None, hook_file: Path | None, srt: Path | No
         chain += (
             f";[{last}]drawtext=fontfile='{_escape_path(Path(font))}':textfile='{_escape_path(hook_file)}':"
             "fontsize=64:fontcolor=white:borderw=6:bordercolor=black:"
-            "x=(w-text_w)/2:y=170:enable='lt(t,4)'[v2]"
+            f"x=(w-text_w)/2:y=170:enable='lt(t,{hook_seconds})'[v2]"
         )
         last = "v2"
     return chain + f";[{last}]format=yuv420p[vout]"
@@ -76,6 +76,7 @@ def render(
     facecam: Facecam | None = None,
     hook: str = "",
     srt: Path | None = None,
+    hook_seconds: float = 4,
 ) -> Path:
     """Cut [start, end] from src and render a 1080x1920 H.264 short."""
     if not shutil.which("ffmpeg"):
@@ -91,7 +92,7 @@ def render(
             cmd += ["-t", f"{end - start:.2f}"]
         cmd += [
             "-i", str(src),
-            "-filter_complex", build_filter(facecam, hook_file, srt),
+            "-filter_complex", build_filter(facecam, hook_file, srt, hook_seconds),
             "-map", "[vout]", "-map", "0:a?",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
             "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",

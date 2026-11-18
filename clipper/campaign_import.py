@@ -1,4 +1,4 @@
-"""Import any Content Rewards campaign from its public link into campaigns.yaml.
+"""Import any Content Rewards campaign from its public link into campaigns/<key>.yaml.
 
 The campaign page ships its data inside Next.js flight chunks
 (self.__next_f.push([1,"..."])). We decode them and pull the campaign object.
@@ -12,9 +12,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
-
-from .config import ROOT
+from .config import read_raw, save_raw
 
 ID_RE = re.compile(r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
 CHUNK_RE = re.compile(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)', re.S)
@@ -97,21 +95,20 @@ def to_entry(obj: dict, url: str) -> dict:
 
 
 def import_campaign(url: str, key: str | None = None, html: str | None = None,
-                    path: Path | None = None) -> tuple[str, dict]:
+                    folder: Path | None = None) -> tuple[str, dict]:
     m = ID_RE.search(url)
     if not m:
         raise ValueError("Not a Content Rewards campaign link (no campaign id found).")
     obj = find_campaign(flight_text(html or fetch_html(url)), m.group(1))
     entry = to_entry(obj, url)
-    path = path or ROOT / "campaigns.yaml"
-    data = yaml.safe_load(path.read_text())
     key = key or _slug(entry["name"])
-    existing = data["campaigns"].get(key)
-    if existing:  # keep what a human or Claude already filled in
-        for k in ("status", "streamer", "hashtags", "notes"):
-            if existing.get(k):
-                entry[k] = existing[k]
-        entry["sources"] = sorted(set(entry["sources"]) | set(existing.get("sources") or []))
-    data["campaigns"][key] = entry
-    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=120))
+    existing = read_raw(key, folder)
+    if existing:  # keep everything a human or Claude filled in, refresh the live numbers
+        merged = dict(existing)
+        for k in ("name", "url", "owner", "rate_per_1k", "min_payout", "max_payout",
+                  "budget_total", "platforms", "live"):
+            merged[k] = entry[k]
+        merged["sources"] = sorted(set(entry["sources"]) | set(existing.get("sources") or []))
+        entry = merged
+    save_raw(key, entry, folder)
     return key, entry

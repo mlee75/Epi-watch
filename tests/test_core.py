@@ -40,7 +40,7 @@ def test_caption_contains_name_and_tags():
 
 def test_campaign_file_loads():
     cs, fee = config.load()
-    assert fee == 0.10 and "tomo" in cs
+    assert fee == 0.10 and "tomo" in cs and cs["tomo"].allows("Playing GTA 6") and not cs["tomo"].allows("Backrooms")
 
 
 def test_find_candidates_picks_spikes_and_spacing():
@@ -101,14 +101,17 @@ def test_import_campaign(tmp_path):
            "configuration": {"budget": 100000, "payoutModel": [
                {"platform": "tiktok", "rate": 150, "minPayout": 300, "maxPayout": 10000},
                {"platform": "twitter", "rate": 150, "minPayout": 300, "maxPayout": 10000}]}}
-    y = tmp_path / "c.yaml"
-    shutil.copy(config.ROOT / "campaigns.yaml", y)
-    key, e = import_campaign(f"https://contentrewards.com/c/campaigns/{cid}", "t1", html=_fake_page(obj), path=y)
+    key, e = import_campaign(f"https://contentrewards.com/c/campaigns/{cid}", "t1", html=_fake_page(obj), folder=tmp_path)
     assert e["rate_per_1k"] == 1.5 and e["min_payout"] == 3 and e["max_payout"] == 100
     assert e["platforms"] == ["tiktok", "x"] and e["sources"] == ["https://www.youtube.com/@test"]
     assert e["live"]["clippers"] == 3
-    cs, _ = config.load(y)
+    cs, _ = config.load(tmp_path)
     assert cs["t1"].budget_total == 1000
+    # re-import keeps hand-filled fields
+    raw = config.read_raw("t1", tmp_path); raw["streamer"] = "Test"; raw["status"] = "joined"
+    config.save_raw("t1", raw, tmp_path)
+    _, e2 = import_campaign(f"https://contentrewards.com/c/campaigns/{cid}", "t1", html=_fake_page(obj), folder=tmp_path)
+    assert e2["streamer"] == "Test" and e2["status"] == "joined"
 
 
 def test_review_move(tmp_path, monkeypatch):
@@ -120,3 +123,13 @@ def test_review_move(tmp_path, monkeypatch):
     assert clips[0]["caption"] == "hi #Tomo"
     review_app.move_clip("tomo", "a.mp4", "kept")
     assert (tmp_path / "kept" / "tomo" / "a.mp4").exists() and (tmp_path / "kept" / "tomo" / "a.txt").exists()
+
+
+def test_settings_override():
+    c = camp(clip={"top": 2})
+    o = c.opts("clip")
+    assert o["top"] == 2 and o["pre"] == 20
+
+
+def test_caption_without_streamer():
+    assert camp(streamer="", hashtags=["#x"]).post_caption() == "T #x"

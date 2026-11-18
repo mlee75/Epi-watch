@@ -1,0 +1,25 @@
+name: TOMO GTA VI Clipping
+url: https://contentrewards.com/c/campaigns/df6de26f-86ec-4782-b818-1fc8053b99a4
+owner: Clipping Nation
+status: joined
+rate_per_1k: 2.0
+min_payout: 4.0
+max_payout: 150.0
+budget_total: 1000
+platforms:
+- tiktok
+- instagram
+- youtube
+streamer: Tomo
+hashtags:
+- '#Tomo'
+- '#GTA6'
+- '#GTAVI'
+sources:
+- https://www.youtube.com/@Tomovids/streams
+- https://www.youtube.com/@Tomovids/videos
+notes: Joined 2026-11-18. Any GTA VI video/stream featuring Tomo. Rules in Clipping Nation Notion page. Payouts require joining
+  the Clipping Nation Discord.
+title_filter:
+- GTA
+since: "2026-11-18"

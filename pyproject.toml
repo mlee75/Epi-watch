@@ -1,7 +1,7 @@
 [project]
-name = "gta6-clipper"
+name = "clip-engine"
 version = "0.1.0"
-description = "Semi-automated clipping pipeline for paid Content Rewards campaigns"
+description = "Semi-automated clipping engine for paid clipping campaigns (Content Rewards and others)"
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.26",

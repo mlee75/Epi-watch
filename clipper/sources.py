@@ -12,6 +12,10 @@ def _ydl(opts: dict):
     except ImportError as e:  # pragma: no cover
         raise SystemExit("yt-dlp missing: pip install -e .") from e
     base = {"quiet": True, "no_warnings": True}
+    from .config import settings
+    browser = settings().get("cookies_from_browser")
+    if browser:  # e.g. "chrome": uses your signed-in browser, avoids YouTube bot checks
+        base["cookiesfrombrowser"] = (browser,)
     return yt_dlp.YoutubeDL({**base, **opts})
 
 
@@ -30,6 +34,20 @@ def recent(url: str, n: int = 5) -> list[dict]:
         }
         for e in entries[:n]
     ]
+
+
+def published(url: str) -> str | None:
+    """Publish date of one video as YYYY-MM-DD, if the site reports it."""
+    try:
+        with _ydl({"skip_download": True, "ignore_no_formats_error": True}) as y:
+            info = y.extract_info(url, download=False)
+    except Exception:
+        return None
+    d = info.get("release_date") or info.get("upload_date")
+    if not d and info.get("timestamp"):
+        from datetime import datetime, timezone
+        d = datetime.fromtimestamp(info["timestamp"], timezone.utc).strftime("%Y%m%d")
+    return f"{d[:4]}-{d[4:6]}-{d[6:]}" if d else None
 
 
 def audio(url: str) -> Path:
