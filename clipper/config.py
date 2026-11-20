@@ -62,6 +62,7 @@ class Campaign:
     caption_cta: str = ""             # call to action sentence for the post caption
     notes: str = ""
     rules_url: str = ""               # full rules page (Notion etc.)
+    deadline: str = ""                # last day to submit, YYYY-MM-DD
     live: dict = field(default_factory=dict)
     clip: dict = field(default_factory=dict)       # overrides settings.clip
     render: dict = field(default_factory=dict)     # overrides settings.render

@@ -90,6 +90,7 @@ def to_entry(obj: dict, url: str) -> dict:
             "budget_spent": spent,
             "clippers": metrics.get("creatorCount", 0),
             "checked": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+            "launched": obj.get("launchDate") or obj.get("createdAt"),
         },
     }
 
@@ -111,4 +112,7 @@ def import_campaign(url: str, key: str | None = None, html: str | None = None,
         merged["sources"] = sorted(set(entry["sources"]) | set(existing.get("sources") or []))
         entry = merged
     save_raw(key, entry, folder)
+    if folder is None:
+        from .budget import record
+        record(key, entry["live"], entry["budget_total"])
     return key, entry

@@ -192,3 +192,13 @@ def test_shortlist_with_fake_transcriber(tmp_path, monkeypatch):
     items = moments.shortlist(wav, n=2)
     assert items and items[0]["hype"] > 0 and "laughing" in items[0]["hype_words"]
     assert any(abs(i["peak"] - 101) < 5 for i in items)
+
+
+def test_runway_from_snapshots(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    from clipper import budget
+    monkeypatch.setattr(config, "DATA", tmp_path)
+    budget.record("x", {"checked": "2026-11-20T00:00+00:00", "budget_spent": 100, "clippers": 5, "status": "active"}, 1000)
+    budget.record("x", {"checked": "2026-11-20T12:00+00:00", "budget_spent": 400, "clippers": 9, "status": "active"}, 1000)
+    r = budget.runway("x", now=datetime(2026, 11, 20, 12, tzinfo=timezone.utc))
+    assert r["per_day"] == 600 and abs(r["days_left"] - 1.0) < 1e-9 and r["left"] == 600

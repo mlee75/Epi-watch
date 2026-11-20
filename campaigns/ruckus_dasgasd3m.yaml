@@ -1,7 +1,7 @@
 name: Dasgasd3m x RUCKUS | GTA 6
 url: https://contentrewards.com/c/campaigns/051002dd-5c46-43d0-a446-43f2957ba3a9
 owner: Ruckus
-status: watch
+status: joined
 rate_per_1k: 2.0
 min_payout: 20.0
 max_payout: 150.0
@@ -9,16 +9,33 @@ budget_total: 1000.0
 platforms:
 - tiktok
 - youtube
-streamer: Dom (Dasgasd3m)
+streamer: Dasgas Dom
 hashtags:
-- '#GTA6'
-sources: []
-notes: Opens Nov 19. Requires a GTA 6-specific account.
-title_filter:
-- GTA
+- '#dasgasdom3'
+- '#gta6'
+- '#gtavi'
+- '#kick'
+- '#gaming'
+sources:
+- https://kick.com/dasgasd3m/videos
+notes: 'Joined 2026-11-20. Footage: only Dom''s GTA 6 Kick streams from Nov 18 2026 onward (live or VOD after the stream ends).
+  No leaks, trailers, other streams, or his older viral clips (style reference only). GTA 6-specific TikTok or YouTube Shorts
+  account required (streamer-clips focus recommended). Keep his face or voice in the edit, keep setup, reaction and payoff.
+  Good moments: funny, emotional, unexpected; deaths, glitches, failed missions, NPC interactions, real chat exchanges. Story
+  moments allowed but warn about spoilers without revealing them on the cover. Credit dasgasd3m on Kick, send viewers to kick.com/dasgasd3m,
+  use #dasgasdom3. Readable captions. He makes adult jokes: skip explicit bits. No fabricated voice, reactions or chat. Submission
+  deadline Dec 19 2026 11:59 PM PST. Read the linked Google brief.'
+title_filter: []
 since: '2026-11-18'
 live:
   status: active
-  budget_spent: 77.63
+  budget_spent: 78.97
   clippers: 41
-  checked: 2026-11-20T18:35+00:00
+  checked: 2026-11-20T19:36+00:00
+  launched: '2026-11-17T20:09:13.000Z'
+handle: kick.com/dasgasd3m
+cta: WATCH DOM LIVE ON KICK
+caption_cta: Watch Dom live on kick.com/dasgasd3m!
+captions:
+  enabled: true
+deadline: '2026-12-19'

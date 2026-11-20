@@ -38,6 +38,7 @@ rules_url: https://app.notion.com/p/Bobby-Van-Riper-Clipping-Campaign-Requiremen
 caption_cta: Follow Bobby Vanriper on Twitch!
 live:
   status: active
-  budget_spent: 34.39
+  budget_spent: 34.58
   clippers: 8
-  checked: 2026-11-20T18:35+00:00
+  checked: 2026-11-20T19:36+00:00
+  launched: '2026-11-12T06:24:27.000Z'

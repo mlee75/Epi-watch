@@ -143,6 +143,33 @@ def cmd_moments(a):
               f"{', '.join(m['hype_words'][:4])}  | {m['text'][:110]}")
 
 
+def cmd_budgets(a):
+    """Budget left and runway for joined campaigns. --refresh re-reads the live pages first."""
+    from .budget import runway
+    from .campaign_import import import_campaign
+    cs, fee = config.load()
+    keys = [k for k, c in cs.items() if c.status in ("joined", "watch")]
+    for k in keys:
+        if a.refresh and cs[k].url:
+            try:
+                import_campaign(cs[k].url, k)
+            except Exception as e:
+                print(f"{k}: refresh failed ({e})")
+    cs, fee = config.load()
+    print(f"{'campaign':18} {'status':8} {'left':>9} {'spent/day':>10} {'runway':>10} clippers  deadline")
+    for k in keys:
+        c = cs[k]
+        r = runway(k, (c.live or {}).get("launched"))
+        if not r:
+            print(f"{k:18} no data yet, run: clipper budgets --refresh")
+            continue
+        rate = f"${r['per_day']:,.0f}" if r["per_day"] else "?"
+        days = r["days_left"]
+        run = "?" if days is None else ("<1 day" if days < 1 else f"{days:.1f} days")
+        flag = "  POST NOW" if days is not None and days < 2 else ""
+        print(f"{k:18} {r['status']:8} ${r['left']:>8,.0f} {rate:>10} {run:>10} {r['clippers']:>8}  {c.deadline or '-'}{flag}")
+
+
 def cmd_campaigns(a):
     cs, fee = config.load()
     if not cs:
@@ -332,6 +359,8 @@ def main(argv=None):
     fc_help = "webcam box x,y,w,h as fractions of the frame; default: the campaign's facecam"
 
     sub.add_parser("campaigns", help="list campaigns and payout thresholds").set_defaults(f=cmd_campaigns)
+    s = sub.add_parser("budgets", help="budget left and how many days until it runs out")
+    s.add_argument("--refresh", action="store_true"); s.set_defaults(f=cmd_budgets)
     sub.add_parser("doctor", help="check the install").set_defaults(f=cmd_doctor)
 
     s = sub.add_parser("add", help="import any Content Rewards campaign from its link")
