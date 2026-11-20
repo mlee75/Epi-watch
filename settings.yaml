@@ -17,6 +17,7 @@ clip:
   chat_weight: 1.0       # how much chat spikes count vs audio spikes
 
 render:
+  layout: smart          # smart = 9:16 crop that follows the action, blur = whole frame on blurred fill
   hook_seconds: 4        # how long the hook text stays on screen
   cta_seconds: 3         # how long the call to action shows at the end
   short_source: 75       # sources shorter than this (Twitch clips) are rendered whole

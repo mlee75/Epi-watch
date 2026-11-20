@@ -6,7 +6,7 @@ Request: $ARGUMENTS
 
 1. Run `.venv/bin/clipper run --dry-run $ARGUMENTS` and show Matthias which VODs it would clip (one line each).
 2. For any joined campaign without a `facecam` value, find it once: `clipper frame <VOD link> --at 900`, look at the PNG, and save the box as `facecam: "x,y,w,h"` in `campaigns/<key>.yaml`. Use "" if there is no webcam.
-3. Run `.venv/bin/clipper run $ARGUMENTS`. This can take several minutes per VOD.
+3. For each VOD it listed, follow steps 3 to 8 of `.claude/commands/clip.md` (shortlist with `clipper moments`, pick the funniest moments yourself, render with `clipper cut`, check frames). Only fall back to `.venv/bin/clipper run $ARGUMENTS` (fully automatic, audio-only picks) if Matthias asks for speed over quality.
 4. Spot-check two rendered clips by looking at one frame each. Fix the crop and re-render if wrong.
 5. Write a hook (max 7 words) on the caption line of each clip's `.txt`, keeping the creator name and hashtags.
 6. Move clips that look like story cutscenes or endings to `out/rejected/<campaign>/`.

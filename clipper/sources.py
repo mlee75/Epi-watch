@@ -50,6 +50,17 @@ def published(url: str) -> str | None:
     return f"{d[:4]}-{d[4:6]}-{d[6:]}" if d else None
 
 
+def heatmap(url: str) -> list[dict] | None:
+    """YouTube "Most replayed" data: [{start_time, end_time, value}], or None."""
+    if "youtu" not in url:
+        return None
+    try:
+        with _ydl({"skip_download": True, "ignore_no_formats_error": True}) as y:
+            return y.extract_info(url, download=False).get("heatmap")
+    except Exception:
+        return None
+
+
 def audio(url: str) -> Path:
     """Download audio only. Cheap way to scan a 6-hour VOD for highlights."""
     out_dir = DATA / "audio"

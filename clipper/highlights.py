@@ -60,6 +60,8 @@ def find_candidates(
     chat_weight: float = 1.0,
     chat_lag: int = 4,
     edge: int = 3,
+    heat: np.ndarray | None = None,
+    heat_weight: float = 1.5,
 ) -> list[Candidate]:
     """Rank moments by loudness (and chat spikes if given), return non-overlapping windows.
 
@@ -75,6 +77,11 @@ def find_candidates(
         c[:n] = chat[:n]
         c = np.roll(c, -chat_lag)
         z = z + chat_weight * _z(c, max(smooth, 5))
+    if heat is not None and len(heat):  # YouTube "Most replayed": what viewers rewatched
+        h = np.zeros(len(db))
+        n = min(len(db), len(heat))
+        h[:n] = heat[:n]
+        z = z + heat_weight * _z(h, max(smooth, 9))
     if len(z) > 2 * edge:
         z[:edge] = -np.inf
         z[-edge:] = -np.inf

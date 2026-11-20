@@ -148,3 +148,47 @@ def test_send_to_phone(tmp_path, monkeypatch):
     clip.with_suffix(".txt").write_text("Source: s\n\nCaption:\nNo way #Tomo\n\nBefore posting")
     out = config.send_to_phone(clip, "tomo")
     assert out.exists() and (phone / "tomo" / "a_caption.txt").read_text() == "No way #Tomo\n"
+
+
+def test_hype_score_counts_laughs_and_hype():
+    from clipper.moments import hype_score
+    s, found = hype_score("NO WAY bro hahaha what was that!!")
+    s0, _ = hype_score("so we drive to the store now")
+    assert s > s0 and "laughing" in found and "no way" in found
+
+
+def test_heat_boosts_replayed_moment():
+    from clipper.moments import heat_per_second
+    rng = np.random.default_rng(0)
+    db = -40.0 + rng.normal(0, 2, 600); db[100] = -34.0
+    heat = heat_per_second([{"start_time": 395, "end_time": 405, "value": 1.0}], 600)
+    top = highlights.find_candidates(db, top=1, heat=heat)
+    assert abs(top[0].peak - 400) <= 6
+
+
+def test_reframe_follows_action():
+    from clipper import reframe
+    sal = np.zeros((40, 320))
+    for i in range(40):
+        x = 20 + i * 7
+        sal[i, x:x + 10] = 100.0
+    raw = reframe.best_centres(sal, 0.32)
+    path = reframe.smooth_path(raw, 0.32)
+    assert path[0] < 0.3 and path[-1] > 0.7
+    assert all(0.16 <= p <= 0.84 for p in path)
+
+
+def test_shortlist_with_fake_transcriber(tmp_path, monkeypatch):
+    import subprocess
+    from types import SimpleNamespace
+    from clipper import moments
+    wav = tmp_path / "a.wav"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i",
+                    "sine=frequency=300:duration=200", "-af", "volume='if(between(t,100,103),1,0.02)':eval=frame",
+                    str(wav)], check=True)
+    W = lambda s, e, w: SimpleNamespace(start=s, end=e, word=w)
+    fake = SimpleNamespace(transcribe=lambda *a, **k: ([SimpleNamespace(words=[W(0, .5, "NO"), W(.5, 1, "WAY"), W(1, 1.5, "hahaha")])], None))
+    monkeypatch.setitem(__import__("sys").modules, "faster_whisper", SimpleNamespace(WhisperModel=lambda *a, **k: fake))
+    items = moments.shortlist(wav, n=2)
+    assert items and items[0]["hype"] > 0 and "laughing" in items[0]["hype_words"]
+    assert any(abs(i["peak"] - 101) < 5 for i in items)

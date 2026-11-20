@@ -57,14 +57,16 @@ def _find(src: str, c: config.Campaign | None, top: int | None, chat: str | None
         print("Chat replay:", chat_file or "none found, audio only")
     elif chat and chat != "auto":
         chat_file = Path(chat)
+    heat = None if _is_local(src) else sources.heatmap(src)
     return highlights.candidates_for(
-        media, top=top or opts["top"], chat_file=chat_file,
+        media, top=top or opts["top"], chat_file=chat_file, heat=heat,
         pre=opts["pre"], post=opts["post"], min_gap=opts["min_gap"], chat_weight=opts["chat_weight"],
     )
 
 
 def _render_one(c: config.Campaign, src: str, start: float, end: float, hook: str,
-                facecam: render.Facecam | None, tag: str, captions: bool | None = None) -> Path:
+                facecam: render.Facecam | None, tag: str, captions: bool | None = None,
+                layout: str | None = None) -> Path:
     cap_opts = c.opts("captions")
     use_caps = cap_opts["enabled"] if captions is None else captions
     out = config.OUT / "review" / c.key / f"{date.today()}_{tag}_{int(start)}.mp4"
@@ -81,7 +83,7 @@ def _render_one(c: config.Campaign, src: str, start: float, end: float, hook: st
             srt = transcribe(media, Path(tmp) / "subs.srt", cap_opts["model"], cap_opts["language"])
         ro = c.opts("render")
         render.render(media, out, facecam=facecam, hook=hook, srt=srt, hook_seconds=ro["hook_seconds"],
-                      handle=c.handle, cta=c.cta, cta_seconds=ro["cta_seconds"])
+                      handle=c.handle, cta=c.cta, cta_seconds=ro["cta_seconds"], layout=layout or ro["layout"])
     focus = c.streamer or "The creator"
     out.with_suffix(".txt").write_text(
         f"Source: {src} @ {start:.0f}s-{end:.0f}s\n\nCaption:\n{c.post_caption(hook)}\n\n"
@@ -116,6 +118,30 @@ def clip_vod(c: config.Campaign, src: str, top: int | None, chat: str | None,
 
 
 # ---------- commands ----------
+
+def cmd_moments(a):
+    """Shortlist the best moments of a VOD with transcripts, for Claude (or you) to pick from."""
+    from . import moments
+    c, _ = config.get(a.campaign)
+    media = Path(a.source) if _is_local(a.source) else sources.audio(a.source)
+    chat_file = None
+    if a.chat == "auto" and not _is_local(a.source) and "youtu" in a.source:
+        from . import chat as chatmod
+        chat_file = chatmod.fetch_youtube(a.source)
+    elif a.chat and a.chat != "auto":
+        chat_file = Path(a.chat)
+    heat = None if _is_local(a.source) else sources.heatmap(a.source)
+    print(f"Signals: audio{' + chat' if chat_file else ''}{' + most replayed' if heat else ''}")
+    caps = c.opts("captions")
+    items = moments.shortlist(media, a.top, chat_file, heat, c.opts("clip"), caps["model"], caps["language"],
+                              transcribe=not a.no_transcripts)
+    vid = Path(a.source).stem if _is_local(a.source) else a.source.rstrip("/").split("=")[-1].split("/")[-1]
+    out = moments.save(items, a.source, config.DATA / "moments" / f"{c.key}_{vid}.json")
+    print(f"\nShortlist: {out}")
+    for m in items[:a.top]:
+        print(f"#{m['id']:>2} {m['start'] / 60:6.1f}-{m['end'] / 60:.1f} min  score {m['score']:5.2f}  "
+              f"{', '.join(m['hype_words'][:4])}  | {m['text'][:110]}")
+
 
 def cmd_campaigns(a):
     cs, fee = config.load()
@@ -155,7 +181,7 @@ def cmd_find(a):
 
 def cmd_cut(a):
     c, _ = config.get(a.campaign)
-    out = _render_one(c, a.source, a.start, a.end, a.hook, _facecam(c, a.facecam), a.tag, a.captions)
+    out = _render_one(c, a.source, a.start, a.end, a.hook, _facecam(c, a.facecam), a.tag, a.captions, a.layout)
     print(f"Rendered {out}")
 
 
@@ -311,6 +337,11 @@ def main(argv=None):
     s = sub.add_parser("add", help="import any Content Rewards campaign from its link")
     s.add_argument("url"); s.add_argument("--key", help="short name, e.g. tomo"); s.set_defaults(f=cmd_add)
 
+    s = sub.add_parser("moments", help="shortlist the best moments of a VOD with transcripts")
+    s.add_argument("campaign"); s.add_argument("source"); s.add_argument("--top", type=int, default=20)
+    s.add_argument("--chat", default="auto", help=chat_help); s.add_argument("--no-transcripts", action="store_true")
+    s.set_defaults(f=cmd_moments)
+
     s = sub.add_parser("scan", help="list latest VODs from a campaign's sources")
     s.add_argument("campaign"); s.add_argument("-n", type=int, default=5); s.set_defaults(f=cmd_scan)
 
@@ -323,6 +354,7 @@ def main(argv=None):
         s.add_argument("campaign"); s.add_argument("source")
         s.add_argument("--facecam", help=fc_help); s.add_argument("--tag", default="clip")
         s.add_argument("--captions", action=argparse.BooleanOptionalAction, default=None)
+        s.add_argument("--layout", choices=["smart", "blur"], help="override settings.render.layout")
         if name == "cut":
             s.add_argument("--start", type=float, required=True); s.add_argument("--end", type=float, required=True)
             s.add_argument("--hook", default="", help="text shown at the start")

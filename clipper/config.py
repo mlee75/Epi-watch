@@ -22,7 +22,7 @@ DEFAULTS = {
     "send_all_to_phone": False,
     "creator_fee": 0.10,
     "clip": {"top": 6, "pre": 20, "post": 10, "min_gap": 45, "chat_weight": 1.0},
-    "render": {"hook_seconds": 4, "cta_seconds": 3, "short_source": 75},
+    "render": {"hook_seconds": 4, "cta_seconds": 3, "short_source": 75, "layout": "smart"},
     "captions": {"enabled": False, "model": "small", "language": "en"},
 }
 
