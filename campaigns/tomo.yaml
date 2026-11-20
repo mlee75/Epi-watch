@@ -1,11 +1,11 @@
 name: TOMO GTA VI Clipping
 url: https://contentrewards.com/c/campaigns/df6de26f-86ec-4782-b818-1fc8053b99a4
 owner: Clipping Nation
-status: joined
-rate_per_1k: 2.0
-min_payout: 4.0
+status: ended
+rate_per_1k: 1.5
+min_payout: 3.5
 max_payout: 150.0
-budget_total: 1000
+budget_total: 1000.0
 platforms:
 - tiktok
 - instagram
@@ -19,6 +19,7 @@ hashtags:
 - '#gaming'
 - '#funnymoments'
 sources:
+- https://www.youtube.com/@Tomovids
 - https://www.youtube.com/@Tomovids/streams
 - https://www.youtube.com/@Tomovids/videos
 notes: 'Rules read 2026-11-18. Source: Tomo GTA VI livestreams or GTA VI videos only (not GTA 5 RP). English only, 40%+ Tier
@@ -39,3 +40,8 @@ captions:
   enabled: true
 rules_url: https://app.notion.com/p/Tomo-GTA-VI-Clipping-Requirements-Guide-41a582c82d888120a0b7f74a3f0d0b84
 caption_cta: Subscribe to Tomo on YouTube!
+live:
+  status: paused
+  budget_spent: 994.05
+  clippers: 47
+  checked: 2026-11-20T18:35+00:00

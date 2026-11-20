@@ -2,10 +2,10 @@ name: BOBBY VAN RIPER GTA VI Clipping
 url: https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c
 owner: Clipping Nation
 status: joined
-rate_per_1k: 1.0
-min_payout: 1.95
-max_payout: 250.0
-budget_total: 1000
+rate_per_1k: 1.5
+min_payout: 2.25
+max_payout: 150.0
+budget_total: 1000.0
 platforms:
 - tiktok
 - instagram
@@ -17,8 +17,10 @@ hashtags:
 - '#twitch'
 - '#gaming'
 sources:
+- https://www.twitch.tv/bobby_vanriper
 - https://www.twitch.tv/bobby_vanriper/clips?filter=clips&range=7d
 - https://www.twitch.tv/bobby_vanriper/videos?filter=archives
+- https://www.youtube.com/@bobbyvanriper
 notes: 'Rules read 2026-11-18. CONFLICT: the Content Rewards brief says GTA VI streams only, the Notion rules say any Bobby
   stream or social media. Kept title_filter GTA until Clipping Nation confirms in Discord. English, NO Tier 1 requirement.
   Tag #bobbyvanriper and show twitch.tv/bobby_vanriper on screen or caption. CTA: "follow Bobby Vanriper on Twitch". Captions
@@ -34,3 +36,8 @@ captions:
   enabled: true
 rules_url: https://app.notion.com/p/Bobby-Van-Riper-Clipping-Campaign-Requirements-Guide-414582c82d8881d5b28bdd4235a1be82
 caption_cta: Follow Bobby Vanriper on Twitch!
+live:
+  status: active
+  budget_spent: 34.39
+  clippers: 8
+  checked: 2026-11-20T18:35+00:00
